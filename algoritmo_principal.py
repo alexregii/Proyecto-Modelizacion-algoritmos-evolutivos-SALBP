@@ -26,7 +26,7 @@
 # Problema de endogamia
 
 # pip install networkx
-
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -36,7 +36,8 @@ from matplotlib.lines import Line2D
 from collections import defaultdict
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-
+import matplotlib.cm as cm
+from multiprocessing import Process
 # prompt: leer datos de un .IN2 que tiene estas caracteristicas:
 # line 1: number n of tasks
 # lines 2-n+1: integer task times
@@ -62,7 +63,7 @@ def read_in2_data(filename):
     
     return n, task_times, matriz_from_rel(n,precedence_relations)
 
-def read_alb_file(filename):
+# def read_alb_file(filename):
     try:
         with open(filename, 'r', encoding='latin-1') as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -138,12 +139,16 @@ def condiciones(sec, n, m, anterioridad):
 
 def dispersion(t):
     return max(t) - min(t)
-
+def penal_sobrecarga(t):
+   media = sum(t) / len(t)
+   res=sum(max(0, load - media) for load in t)
+   return res/len(t)
+    
 def score(sec, n, m, anterioridad, tiempos):
     if not condiciones(sec, n, m, anterioridad):
         return 1e6
     t = tiempo_grupo(sec, tiempos)
-    return max(t)*0.7 + dispersion(t)*0.3
+    return 0.6*max(t) + 0.2*dispersion(t) + 0.2*penal_sobrecarga(t)
 
 #clasificar los individuos de una población del más al menos equilibrado
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
@@ -173,6 +178,7 @@ def seleccionMut(poblacion,n,m,anterioridad,tiempos):
     poblacion[1:mitad] = mutacion(poblacion[1:mitad],n,m)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion[mitad:] = poblacion_inicial(len(poblacion)-mitad,n,m,anterioridad,tiempos)
+    # clasificacion(poblacion,n,m,anterioridad,tiempos)
     return poblacion
 
 #selección de la población : clasificación, conservación del mejor individuo, mutación del resto de la primer mitad de la población, regeneración completa de la segunda mitad
@@ -198,6 +204,7 @@ def seleccionCruc2(poblacion,n,m,anterioridad,tiempos):
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion = cruce(poblacion,ord_top)
     mitad = len(poblacion) // 2
+    poblacion = clasificacion(poblacion,n,m,anterioridad,tiempos)
     poblacion[mitad:] = poblacion_inicial(len(poblacion)-mitad,n,m,anterioridad,tiempos)
     return poblacion[:len(poblacion)//2]
 
@@ -247,9 +254,19 @@ def cruce2a2(ind1,ind2,a,b,ord_top):
   nvind1 = ind1.copy()
   nvind2 = ind2.copy()
   result=[]
-  for i in range(a,b):
-      nvind1[ord_top[i]]=ind2[ord_top[i]]
-      nvind2[ord_top[i]]=ind1[ord_top[i]]
+  eleccion=rd.choices([1,2,3],weights=[0.2,0.6,0.2],k=1)[0]
+  if(eleccion==1):
+    for i in range(a,b):
+            nvind1[ord_top[i]]=ind2[ord_top[i]]
+            nvind2[ord_top[i]]=ind1[ord_top[i]]
+  elif(eleccion==2):
+    for i in range(b,len(ord_top)):
+            nvind1[ord_top[i]]=ind2[ord_top[i]]
+            nvind2[ord_top[i]]=ind1[ord_top[i]]
+  else:
+     for i in range(0,a):
+            nvind1[ord_top[i]]=ind2[ord_top[i]]
+            nvind2[ord_top[i]]=ind1[ord_top[i]]
   result.append(nvind1)
   result.append(nvind2)
   return result
@@ -277,18 +294,20 @@ def cruce(mejores,ord_top):
 
 # Assuming your data is in a list of tuples called 'data'
 # Example: data = [(1, 2), (3, 4), (5, 6)]
-
-import matplotlib.pyplot as plt
-
 def plot_tuples(data):
-  x_values = [item[0] for item in data]
-  y_values = [item[1] for item in data]
-  plt.plot(x_values, y_values, marker='o', linestyle='-')
-  plt.xlabel("X-axis (Numero de generaciones)")
-  plt.ylabel("Y-axis (Valor de la peor estacion)")
-  plt.title("Grafico de soluciones")
-  plt.grid(True)
-  plt.show()
+    tuplas = [item[1] for item in data]
+    cmap = cm.get_cmap('tab10')
+    for i in range(len(tuplas)):
+        x_values=[tupla[0] for tupla in tuplas[i]]
+        y_values=[tupla[1] for tupla in tuplas[i]]
+        plt.plot(x_values, y_values, marker='o', linestyle='-', color=cmap(i % cmap.N))
+    
+    plt.legend()
+    plt.xlabel("X-axis (Numero de generaciones)")
+    plt.ylabel("Y-axis (Valor de la peor estacion)")
+    plt.title("Comparacion entre los distintos")
+    plt.grid(True)
+    plt.show()
 
 
 
@@ -311,29 +330,57 @@ def tiempo_etapas(n,minT,maxT):
 
 ###EN CASO DE GENERACION ALEATORIA DE LA POBLACION INCIAL : construir la población inicial con n individuo
 #cada individuo tiene que ser válido, cumplir la función condiciones
-def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
-  poblacion = []
-  sec = [0]*n
-  ord_top = matriz_a_lista_adyacencia(anterioridad)
-  for i in range(0,dim_pob):
-    while condiciones(sec,n,m,anterioridad) == False:
-      for j in range(len(ord_top)):
-        if(j==0):
-          sec[ord_top[j]] = rd.randint(0,m-1)
-        else:
-          if(sec[ord_top[j-1]]-1>=0):
-            sec[ord_top[j]] = rd.randint(sec[ord_top[j-1]]-1,sec[ord_top[j-1]])
-          else:
-            sec[ord_top[j]] = rd.randint(0,sec[ord_top[j-1]])
-    poblacion.append(sec)
-    sec = [0]*n
-  return poblacion
+# def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
+#   poblacion = []
+#   sec = [0]*n
+#   ord_top = matriz_a_lista_adyacencia(anterioridad)
+  
+#   for i in range(0,dim_pob):
+#     while condiciones(sec,n,m,anterioridad) == False:
+#       for j in range(len(ord_top)):
+#         k=rd.randrange(0,100)/200
+#         if(j==0):
+#           sec[ord_top[j]] = m-1
+#         else:
+#           if(sec[ord_top[j-1]]-1>=0):
+#             sec[ord_top[j]] = rd.choices([sec[ord_top[j-1]]-1,sec[ord_top[j-1]]],weights=[k,1-k],k=1)[0]
+#           else:
+#             sec[ord_top[j]] = rd.choices([0,sec[ord_top[j-1]]],weights=[k,1-k],k=1)[0]
+            
+#     poblacion.append(sec)
+#   sec = [0]*n
+#   return poblacion
+def poblacion_inicial(dim_pob, n, m, anterioridad,tiempos):
+    poblacion = []
+    ord_top = matriz_a_lista_adyacencia(anterioridad)
+    for _ in range(dim_pob):
+        sec = [0] * n
+        intentos = 0
+        while not condiciones(sec, n, m, anterioridad) and intentos < 1000:
+            for j in range(len(ord_top)):
+                k = 1/2 # probabilidad
+                if j == 0:
+                    sec[ord_top[j]] = m - 1  # primera tarea a última estación
+                else:
+                    prev_est = sec[ord_top[j - 1]]
+                    if prev_est - 1 >= 0:
+                        opciones = [prev_est - 1, prev_est]
+                    else:
+                        opciones = [0, prev_est]
+                    sec[ord_top[j]] = rd.choices(opciones, weights=[k, 1 - k], k=1)[0]
+            intentos += 1
 
-def grafo(matriz, sec, tiempo, score, m):
+        poblacion.append(sec.copy()) 
+
+    return poblacion
+
+def grafo(matriz, sec, tiempo, score, m,fig_id):
+    plt.figure(fig_id)
+    plt.clf()  # Limpiar figura actual
     matriz_np = np.array(matriz)
     tiempos = tiempo_grupo(sec, tiempo)
     num_grupos = max(sec) + 1
-    cmap = plt.get_cmap("gist_rainbow",num_grupos)
+    cmap = plt.get_cmap("gist_rainbow", num_grupos)
     colores = [mcolors.to_hex(cmap(i)) for i in range(num_grupos)]
     nudos_color = [colores[g] for g in sec]
 
@@ -345,46 +392,48 @@ def grafo(matriz, sec, tiempo, score, m):
         group_times[color] = tiempos[group]
 
     pos = nx.spring_layout(G, seed=42)
-    nx.draw(G, pos, with_labels=True, node_color=nudos_color,
-            node_size=4800//len(matriz), edge_color='gray', font_weight='bold',
-            font_size=10 + (4800//len(matriz))/500)
+    nx.draw(G, pos, with_labels=False, node_color=nudos_color,
+             node_size=4800//len(matriz), edge_color='gray', font_weight='bold',
+             font_size=10 + (4800//len(matriz))/500)
 
     used_colors = sorted(set(nudos_color), key=lambda c: colores.index(c))
     legend_labels = [Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10)
                      for color in used_colors]
     time_legend = [f"{color}: {group_times[color]}" for color in used_colors]
-    # print("ESTO ES IMPORTANTE" + str(group_times))
+
     plt.legend(legend_labels, time_legend,
-               title="Dispersión: " + str(dispersion(tiempos))+"\n"+"El tiempo maximo es: "+str(max(tiempos)),
-               loc="best",bbox_to_anchor=(0, 0), fontsize=10)
-    plt.title("Solución")
+               title="Dispersión: " + str(dispersion(tiempos)) +
+                     "\nTiempo máximo: " + str(max(tiempos)),
+               loc="upper left",fontsize=10)
+    plt.title("Mejor solución actual",loc="center")
+    plt.pause(0.01)  # Mostrar sin bloquear
+
+def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiempos,fig_id):
+    plt.ion()  # Activar modo interactivo
+    k = 0
+    poblacion = pob_init
+    tuplas = []
+    best = poblacion[0]
+
+    for i in range(no_gen):
+        if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
+            print("GENERACION:", i)
+            print("Tiempo maximo:", max(tiempo_grupo(poblacion[0], tiempos)))
+            tuplas.append((i, max(tiempo_grupo(poblacion[0], tiempos))))
+            best = poblacion[0]
+            grafo(anterioridad, poblacion[0], tiempos, score(poblacion[0], n, m, anterioridad, tiempos), m,fig_id)
+
+        poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos)
+        poblacion = seleccionMut(poblacion, n, m, anterioridad, tiempos)
+        k += dim_pob
+
+    plt.ioff()  # Desactivar modo interactivo
+    plt.figure(fig_id)  # Asegura mostrar la figura correcta
     plt.show()
-
-
-#algoritmo genetico principal
-def genetic(tipo_seleccion,pob_init,no_gen,dim_pob,n,m,anterioridad,tiempos):
-  k = 0
-  poblacion = pob_init
-  tuplas=[]
-  best=poblacion[0]
-  for i in range(0,no_gen):
-    if poblacion[0] != best or i == no_gen-1 or i%100==0:
-      print("GENERACION: " + str(i))
-      print(str(max(tiempo_grupo(poblacion[0],tiempos))))
-      tuplas.append((i,max(tiempo_grupo(poblacion[0],tiempos))))
-      best=poblacion[0]
-
-    # print(i)
-    poblacion = tipo_seleccion(poblacion,n,m,anterioridad,tiempos)
-    poblacion = seleccionMut(poblacion,n,m,anterioridad,tiempos)
-    k = k + dim_pob
-
-  grafo(anterioridad,poblacion[0],tiempos,score(poblacion[0],n,m,anterioridad,tiempos),m)
-  plot_tuples(tuplas)
-  print("Valor del resultado 1:"+str(score(poblacion[0],n,m,anterioridad,tiempos)))
-  print("número de soluciones posibles: " + str(math.comb(n,m)))
-  print("número de soluciones calculadas: " + str(k))
-  return poblacion[0]
+    print("Valor del resultado 1:", score(poblacion[0], n, m, anterioridad, tiempos))
+    print("Número de soluciones posibles:", math.comb(n, m))
+    print("Número de soluciones calculadas:", k)
+    return poblacion[0], (tipo_seleccion.__name__, tuplas)
 
 #Matriz a lista de adyaciencia
 def matriz_a_lista_adyacencia(matriz):
@@ -395,8 +444,3 @@ def matriz_a_lista_adyacencia(matriz):
           if matriz[i][j] == 1:
               G.add_edge(i, j)
   return  list(nx.topological_sort(G))
-
-def comparar_tipo_selecion(pob_init,no_gen,dim_pob,n,m,anterioridad,tiempos):
-  genetic(seleccionCruc2,pob_init,no_gen,dim_pob,n,m,anterioridad,tiempos)
-  genetic(seleccionMut,pob_init,no_gen,dim_pob,n,m,anterioridad,tiempos)
-  genetic(seleccionCrucRueda,pob_init,no_gen,dim_pob,n,m,anterioridad,tiempos)

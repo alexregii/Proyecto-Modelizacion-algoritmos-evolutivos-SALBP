@@ -1,4 +1,4 @@
-from algoritmo_principal import read_in2_data,poblacion_inicial,genetic,seleccionCruc2
+from algoritmo_principal import *
 def main():
     # #test problema 1
     # t1 = [10,15,20,12,18,25]
@@ -67,11 +67,13 @@ def main():
 
     # test genetic desde los datos
 
-    n, task_times, precedence_matrix = read_in2_data(".\precedenceGraphs\LUTZ2.IN2")  
+    n, task_times, precedence_matrix = read_in2_data(".\precedenceGraphs\scholl.IN2")  
     # print("DATOS:\n"+"n: "+str(n)+"\ntasktimes: "+str(task_times)+"\nMatriz:"+str(precedence_matrix))  
     anterioridad = precedence_matrix
-    pob_init=poblacion_inicial(1000,n,9,anterioridad,task_times)
-    genetic(seleccionCruc2,pob_init,10000,1000,n,9,anterioridad,task_times)
+    m=52
+    pob_init=poblacion_inicial(100,n,m,anterioridad,task_times)
+    n,dato1=genetic(seleccionCruc2,pob_init,100000,100,n,m,anterioridad,task_times,1)
+    plot_tuples([dato1])
     #print(genetic2(100,100,n,9,anterioridad,task_times))
 
 if(__name__=='__main__'):
