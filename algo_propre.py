@@ -172,11 +172,11 @@ def mutacion(poblacion,n,m):
   return poblacion
 
 def mutacion2(poblacion,n,m):
-  a =  rd.randint(0,len(poblacion)-1)
-  b =  rd.randint(0,len(poblacion)-1)
-  aux = poblacion[a]
-  poblacion[a] = poblacion[b]
-  poblacion[b] = aux
+  for a in range(len(poblacion)):
+    for j in range(len(poblacion[a])):
+        fac = rd.randint(-m//2,m//2)
+        cambio = rd.choices(population=[fac*1, 0], weights=[0.2,0.8], k=1)[0]
+        poblacion[a][j] += cambio
   return poblacion
 
 def seleccionCruc2(poblacion,n,m,anterioridad,tiempos):
@@ -196,7 +196,8 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos):
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
     for i in range(tercio, 2 * tercio):
-        poblacion[i] = copy.deepcopy(poblacion[rd.randint(0,tercio)])
+        poblacion[i] = copy.deepcopy(poblacion[0])
+    poblacion[tercio,2*tercio] = mutacion2(poblacion[tercio,2*tercio],n,m)
 
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
 
@@ -211,8 +212,6 @@ def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos):
     poblacion[1:] = class_rueda(poblacion[1:],n,m,anterioridad,tiempos)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
-    #for i in range(tercio, 2 * tercio):
-       # poblacion[i] = copy.deepcopy(poblacion[rd.randint(0,tercio)])
 
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
 
@@ -360,29 +359,29 @@ def tiempo_etapas(n,minT,maxT):
 #     poblacion.append(sec)
 #   sec = [0]*n
 #   return poblacion
-def poblacion_inicial(dim_pob, n, m, anterioridad,tiempos):
-    poblacion = []
-    ord_top = matriz_a_lista_adyacencia(anterioridad)
-    for _ in range(dim_pob):
-        sec = [0] * n
-        intentos = 0
-        while not condiciones(sec, n, m, anterioridad) and intentos < 1000:
-            for j in range(len(ord_top)):
-                k = 1/2 # probabilidad
-                if j == 0:
-                    sec[ord_top[j]] = m - 1  # primera tarea a última estación
-                else:
-                    prev_est = sec[ord_top[j - 1]]
-                    if prev_est - 1 >= 0:
-                        opciones = [prev_est - 1, prev_est]
-                    else:
-                        opciones = [0, prev_est]
-                    sec[ord_top[j]] = rd.choices(opciones, weights=[k, 1 - k], k=1)[0]
-            intentos += 1
 
-        poblacion.append(sec.copy()) 
+def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
+  poblacion = []
+  sec = [0]*n
+  ord_top = matriz_a_lista_adyacencia(anterioridad)
+  for i in range(0,dim_pob):
+    while condiciones(sec,n,m,anterioridad) == False:
+      for j in range(len(ord_top)):
+        if(j==0):
+          sec[ord_top[j]] = rd.randint(0,m-1)
+        else:
+          if(sec[ord_top[j-1]]-1>=0):
+            sec[ord_top[j]] = rd.randint(sec[ord_top[j-1]]-1,sec[ord_top[j-1]])
+          else:
+            sec[ord_top[j]] = rd.randint(0,sec[ord_top[j-1]])
+    for j in range(len(sec)):
+        fac = rd.randint(-2,2)
+        cambio = rd.choices(population=[fac*1, 0], weights=[0.3,0.7], k=1)[0]
+        sec[j] += cambio
+    poblacion.append(copy.deepcopy(sec))
+  return poblacion
 
-    return poblacion
+
 
 def grafo(matriz, sec, tiempo, score, m,fig_id):
     plt.figure(fig_id)
@@ -427,7 +426,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     endo = True
     max_score_prec = 10000
     num_sol = math.comb(n, m)
-    delay = 500
+    delay = 100000
     for i in range(no_gen):
         if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
             print("GENERACION:", i)
