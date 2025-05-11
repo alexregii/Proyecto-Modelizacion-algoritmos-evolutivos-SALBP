@@ -136,14 +136,16 @@ def tiempo_grupo(sec, tiempos):
 def condiciones(sec, n, m, anterioridad):
     # Validar que sec contiene todos los valores de 0 a m-1
     if sorted(set(sec)) != list(range(m)):
-      return False
-
+      return False,1e7
     # Comprobación de anterioridad
+    bool=True
+    n_fallos=0
     for k in range(len(sec)):
         for i in range(len(sec)):
             if anterioridad[k][i] == 1 and sec[k] < sec[i]:
-                return False
-    return True
+                bool=False
+                n_fallos += 1
+    return bool, n_fallos
 
 def dispersion(t):
     return max(t) - min(t)
@@ -153,10 +155,9 @@ def penal_sobrecarga(t):
    return res/len(t)
     
 def score(sec, n, m, anterioridad, tiempos):
-    if not condiciones(sec, n, m, anterioridad):
-        return 1e6
+    bool, n_fallos = condiciones(sec, n, m, anterioridad)
     t = tiempo_grupo(sec, tiempos)
-    return 0.6*max(t) + 0.2*dispersion(t) + 0.2*penal_sobrecarga(t)
+    return 0.6*max(t) +0.2*penal_sobrecarga(t)+ 0.2*dispersion(t) + 1e4*n_fallos
 
 #clasificar los individuos de una población del más al menos equilibrado
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
@@ -197,7 +198,7 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos):
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
     for i in range(tercio, 2 * tercio):
         poblacion[i] = copy.deepcopy(poblacion[0])
-    poblacion[tercio,2*tercio] = mutacion2(poblacion[tercio,2*tercio],n,m)
+    poblacion[tercio:2*tercio] = mutacion2(poblacion[tercio:2*tercio],n,m)
 
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
 
@@ -337,48 +338,41 @@ def tiempo_etapas(n,minT,maxT):
     tiempos.append(rd.randint(minT,maxT))
   return tiempos
 
-###EN CASO DE GENERACION ALEATORIA DE LA POBLACION INCIAL : construir la población inicial con n individuo
-#cada individuo tiene que ser válido, cumplir la función condiciones
-# def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
-#   poblacion = []
-#   sec = [0]*n
-#   ord_top = matriz_a_lista_adyacencia(anterioridad)
-  
-#   for i in range(0,dim_pob):
-#     while condiciones(sec,n,m,anterioridad) == False:
-#       for j in range(len(ord_top)):
-#         k=rd.randrange(0,100)/200
-#         if(j==0):
-#           sec[ord_top[j]] = m-1
-#         else:
-#           if(sec[ord_top[j-1]]-1>=0):
-#             sec[ord_top[j]] = rd.choices([sec[ord_top[j-1]]-1,sec[ord_top[j-1]]],weights=[k,1-k],k=1)[0]
-#           else:
-#             sec[ord_top[j]] = rd.choices([0,sec[ord_top[j-1]]],weights=[k,1-k],k=1)[0]
-            
-#     poblacion.append(sec)
-#   sec = [0]*n
-#   return poblacion
-
-def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
+#POBLACION INICIAL COMPLETAMENTE ALEATORIA
+def poblacion_iniciala(dim_pob,n,m,anterioridad,tiempos):
   poblacion = []
   sec = [0]*n
   ord_top = matriz_a_lista_adyacencia(anterioridad)
-  for i in range(0,dim_pob):
-    while condiciones(sec,n,m,anterioridad) == False:
-      for j in range(len(ord_top)):
-        if(j==0):
-          sec[ord_top[j]] = rd.randint(0,m-1)
-        else:
-          if(sec[ord_top[j-1]]-1>=0):
-            sec[ord_top[j]] = rd.randint(sec[ord_top[j-1]]-1,sec[ord_top[j-1]])
-          else:
-            sec[ord_top[j]] = rd.randint(0,sec[ord_top[j-1]])
-    for j in range(len(sec)):
-        fac = rd.randint(-2,2)
-        cambio = rd.choices(population=[fac*1, 0], weights=[0.3,0.7], k=1)[0]
-        sec[j] += cambio
-    poblacion.append(copy.deepcopy(sec))
+  for i in range(dim_pob):
+
+    for j in range(n):
+        sec[j]= rd.randint(0,m-1)
+    
+    poblacion.append(sec.copy()) 
+    sec = [0]*n
+    
+  return poblacion
+
+def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
+  poblacion = []
+  k = 1/2
+  ord_top = matriz_a_lista_adyacencia(anterioridad)
+  for i in range(dim_pob):
+    sec = [0]*n
+    l = 1 # probabilidad
+    for j in range(len(ord_top)):
+            if l==1:
+                if j == 0:
+                    sec[ord_top[j]] = m - 1  # primera tarea a última estación
+                else:
+                    prev_est = sec[ord_top[j - 1]]
+                    if prev_est - 1 >= 0:
+                        opciones = [prev_est - 1, prev_est,prev_est+1]
+                    else:
+                        opciones = [0, 0, 1]
+                    elegido=rd.choices(opciones, weights=[0.167,1-0.167,0], k=1)[0]
+                    sec[ord_top[j]] = elegido
+    poblacion.append(sec.copy()) 
   return poblacion
 
 
@@ -412,7 +406,8 @@ def grafo(matriz, sec, tiempo, score, m,fig_id):
 
     plt.legend(legend_labels, time_legend,
                title="Dispersión: " + str(dispersion(tiempos)) +
-                     "\nTiempo máximo: " + str(max(tiempos)),
+                     "\nTiempo máximo: " + str(max(tiempos))+
+                     "\nValido: " + str(condiciones(sec, 0, m, matriz)[0])+", Nº de fallos:"+str(condiciones(sec, 0, m, matriz)[1]),
                loc="upper left",fontsize=10)
     plt.title("Mejor solución actual",loc="center")
     plt.pause(0.01)  # Mostrar sin bloquear
@@ -430,6 +425,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     for i in range(no_gen):
         if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
             print("GENERACION:", i)
+            print("PUNTUACION: "+str(score(poblacion[0], n, m, anterioridad, tiempos )))
             print("Tiempo maximo:", max(tiempo_grupo(poblacion[0], tiempos)))
             tuplas.append((i, max(tiempo_grupo(poblacion[0], tiempos))))
             best = poblacion[0]
@@ -437,13 +433,13 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
         
         
         k += dim_pob
-        if i % delay == 0 and i > 0:     
-            if score(poblacion[0], n, m, anterioridad, tiempos) == max_score_prec:
-                for i in range(len(poblacion)):
-                    poblacion[1:] = mutacion(poblacion[1:],n,m)
-                print(k)
-                endo = False    
-            max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
+        # if i % delay == 0 and i > 0:     
+        #     if score(poblacion[0], n, m, anterioridad, tiempos) == max_score_prec:
+        #         for i in range(len(poblacion)):
+        #             poblacion[1:] = mutacion(poblacion[1:],n,m)
+        #         print(k)
+        #         endo = False    
+        #     max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
         poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos)
         endo = True
             
