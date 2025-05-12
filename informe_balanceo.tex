@@ -1,0 +1,93 @@
+\documentclass[12pt]{report}
+
+\title{Proyecto de modelización - Programación evolutiva\\ \textbf{El problema de balanceo de líneas de montaje}} 
+\author{Paul Rohel - Alejandro Regidor Orellana}
+\date{\today}
+
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{mathtools, amsfonts, amssymb, amsthm}
+\usepackage{float}
+
+\renewcommand{\chaptername}{}
+
+\setlength{\parindent}{0pt}
+
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{\vspace*{50\p@}%
+  \begin{center}%
+    {\normalfont\huge\bfseries #1\par}%
+  \end{center}\vskip 40\p@}
+\makeatother
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{Planteamiento del problema}
+
+El problema de balanceo de líneas de ensamblaje puede plantearse de diferentes maneras.Dadas $n$ tareas, cada una con un tiempo de procesamiento asignado y una lista de relaciones de precedencia entre ellas, dichas tareas deben asignarse a $m \leq n$ estaciones de trabajo.\\
+Una de las variantes clásicas, conocida como \textit{Simple Assembly Line Balancing Problem tipo 1} (SALBP-1), consiste en encontrar una asignación de las $n$ tareas a las estaciones de manera que se minimice el número de estaciones, dado un tiempo de ciclo preestablecido.\\
+En cambio, la variante sobre la que hemos trabajado (SALBP-2) tiene como objetivo encontrar una asignación de tareas que minimice el tiempo de ciclo, dado un número fijo de estaciones $m$. En este contexto, el tiempo de ciclo se define como el tiempo total más largo asignado a una estación, es decir, el máximo entre todas las estaciones.
+
+\chapter{Presentación general del algoritmo genético}
+
+Para resolver este problema, implementamos un algoritmo genético. 
+Dadas $n$ tareas que deben asignarse a $m$ estaciones, el espacio de búsqueda contiene $O\left(\binom{n}{m}\right)$ soluciones posibles. 
+Una solución, es decir, una asignación de las tareas entre las diferentes estaciones, se codifica posicionalmente como un arreglo unidimensional indexado de $0$ a $n-1$, 
+cuyos elementos toman valores enteros entre $0$ y $m-1$.
+
+Por ejemplo, el arreglo $[0, 0, 0, 1, 0, 2, 2, 1]$ representa una solución para un problema con $8$ tareas distribuidas en $3$ estaciones.\\
+
+Para codificar las relaciones de precedencia entre las tareas, utilizamos una matriz $A$ de tamaño $n \times n$ definida de la siguiente manera:\\
+$
+\forall i,j \in \{0,\dots,n-1\},$\\
+$
+A(i,j) = 
+\begin{cases}
+1 & \text{si la tarea } j \text{ precede directamente a la tarea } i \\
+0 & \text{en caso contrario}
+\end{cases}
+$\\
+
+Dado que todas las tareas que deben preceder a otra deben asignarse a una estación anterior o, como máximo, a la misma estación que la tarea que las sigue, 
+las relaciones de precedencia imponen restricciones estrictas sobre la validez de las soluciones. También es necesario verificar que exactamente todos los grupos dados, y solo esos, aparezcan en los valores del arreglo solución.\\
+
+La función de evaluación de un individuo consiste esencialmente en devolver el tiempo más largo entre las estaciones. Penaliza significativamente a los individuos no válidos, 
+asignándoles un puntaje arbitrariamente grande.
+Por lo tanto, el objetivo del problema será encontrar el individuo que minimice esta función.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
