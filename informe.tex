@@ -1,0 +1,59 @@
+\documentclass[12pt]{report}
+
+\title{Práctica - Probabilidades y Estadísticas II} 
+\author{Paul Rohel, David Ortega Villanueva, Guilhem Roche}
+\date{\today}
+
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{mathtools, amsfonts, amssymb, amsthm}
+\usepackage{float}
+
+\renewcommand{\chaptername}{}  % Supprimer le nom du chapitre
+
+\setlength{\parindent}{0pt}
+\setcounter{secnumdepth}{-1}    % Désactive la numérotation des sections
+\setcounter{tocdepth}{1}        % N'affiche que sections et sous-sections (pas de chapitre)
+
+% Empêcher l'ajout du chapitre dans la table des matières
+\makeatletter
+\def\tableofcontents{%
+  \chapter*{Índice}   % Affiche "Índice" sans numéro de chapitre
+  \@starttoc{toc}     % Démarre le sommaire sans numéroter les chapitres
+  \clearpage          % Ajoute un saut de page après la table des matières
+}
+\makeatother
+
+% Redéfinir \chapter* pour ne pas ajouter un chapitre au sommaire
+\makeatletter
+\def\chapter*#1{%
+  \section*{#1}  % Redirige \chapter* vers \section*
+}
+\makeatother
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Variable mpg}  % Cette section apparaîtra une seule fois dans le sommaire
+
+\subsection{1. Asignar un modelo probabilístico}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
