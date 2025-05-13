@@ -182,17 +182,17 @@ def mutacion2(poblacion,n,m):
         poblacion[a][j] += cambio
   return poblacion
 
-def seleccionCruc2(poblacion,n,m,anterioridad,tiempos):
+def seleccionCruc2(poblacion,n,m,anterioridad,tiempos,p):
     poblacion = clasificacion(poblacion,n,m,anterioridad,tiempos)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion = cruce(poblacion,ord_top)
     mitad = len(poblacion) // 2
     poblacion = clasificacion(poblacion,n,m,anterioridad,tiempos)
-    poblacion[mitad:] = poblacion_inicial(len(poblacion)-mitad,n,m,anterioridad,tiempos)
+    poblacion[mitad:] = poblacion_inicial(len(poblacion)-mitad,n,m,anterioridad,tiempos,p)
     return poblacion
 
 
-def seleccion_corto(poblacion, n, m, anterioridad, tiempos):
+def seleccion_corto(poblacion, n, m, anterioridad, tiempos,p):
     tercio = len(poblacion) // 3
     poblacion[0] = clasificacion(copy.deepcopy(poblacion), n, m, anterioridad, tiempos)[0]
     poblacion[1:] = class_torneo(poblacion[1:],n,m,anterioridad,tiempos,2)
@@ -202,14 +202,14 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos):
         poblacion[i] = copy.deepcopy(poblacion[0])
     poblacion[tercio:2*tercio] = mutacion2(poblacion[tercio:2*tercio],n,m)
 
-    poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
+    poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos,p)
 
     for i in range(len(poblacion)):
         poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
     
     return poblacion
 
-def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos):
+def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos,p):
     tercio = len(poblacion) // 3
     poblacion[0] = clasificacion(copy.deepcopy(poblacion), n, m, anterioridad, tiempos)[0]
     poblacion[1:] = class_rueda(poblacion[1:],n,m,anterioridad,tiempos)
@@ -217,7 +217,7 @@ def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos):
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
     # for i in range(tercio,2*tercio):
     #     poblacion[i]= copy.deepcopy(poblacion[0])
-    poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
+    poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos,p)
 
     poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
         
@@ -354,9 +354,8 @@ def poblacion_iniciala(dim_pob,n,m,anterioridad,tiempos):
     
   return poblacion
 
-def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
+def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos,p):
   poblacion = []
-  k = 0.12819095477386935
   ord_top = matriz_a_lista_adyacencia(anterioridad)
   for i in range(dim_pob//2):
     sec = [0]*n
@@ -371,7 +370,7 @@ def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
                         opciones = [prev_est - 1, prev_est,prev_est+1]
                     else:
                         opciones = [0, 0, 1]
-                    elegido=rd.choices(opciones, weights=[k,0.99-k,0.01], k=1)[0]
+                    elegido=rd.choices(opciones, weights=[p,0.99-p,0.01], k=1)[0]
                     sec[ord_top[j]] = elegido
     poblacion.append(sec.copy()) 
 
@@ -422,6 +421,7 @@ def grafo(matriz, sec, tiempo, score, m,fig_id):
 
 def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiempos,fig_id):
     plt.ion()  # Activar modo interactivo
+    p=find_best_p(n,m,500)[0]
     k = 0
     poblacion = pob_init
     tuplas = []
@@ -448,7 +448,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
         #         print(k)
         #         endo = False    
         #     max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
-        poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos)
+        poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos,p)
         endo = True
             
 
