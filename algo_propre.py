@@ -198,14 +198,15 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos,p):
     poblacion[1:] = class_torneo(poblacion[1:],n,m,anterioridad,tiempos,2)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
-    for i in range(tercio, 2 * tercio):
-        poblacion[i] = copy.deepcopy(poblacion[0])
-    poblacion[tercio:2*tercio] = mutacion2(poblacion[tercio:2*tercio],n,m)
-
+    # for i in range(tercio, 2 * tercio):
+    #     poblacion[i] = copy.deepcopy(poblacion[0])
+    
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos,p)
 
-    for i in range(len(poblacion)):
-        poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
+    poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
+
+    # for i in range(len(poblacion)):
+    #     poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
     
     return poblacion
 
@@ -262,7 +263,7 @@ def cond_matriz(matriz):
     return True
 
 #Cruce2a2
-def cruce2a2(ind1,ind2,a,b,ord_top):
+def cruce2a2dospuntos(ind1,ind2,a,b,ord_top):
   nvind1 = ind1.copy()
   nvind2 = ind2.copy()
   result=[]
@@ -285,7 +286,18 @@ def cruce2a2(ind1,ind2,a,b,ord_top):
 
 #Cruce general
 #poblacion = total de la poblacion / 2
-
+def cruce2a2uniforme(ind1,ind2,a,b,ord_top):
+    num_mut=rd.randint(0,3)
+    nvind1 = ind1.copy()
+    nvind2 = ind2.copy()
+    result=[]
+    for i in range(num_mut):
+        j=rd.randint(0,len(ord_top)-1)
+        nvind1[ord_top[j]]=ind2[ord_top[j]]
+        nvind2[ord_top[j]]=ind1[ord_top[j]]
+    result.append(nvind1)
+    result.append(nvind2)
+    return result
 def cruce(mejores, ord_top):
     resultado = []
     resultado.append(mejores[0])  # Garde le meilleur
@@ -298,7 +310,7 @@ def cruce(mejores, ord_top):
         a = rd.randint(0, len(ord_top) // 2)
         b = rd.randint(a, len(ord_top))
 
-        hijos = cruce2a2(mejores[i], mejores[j], a, b, ord_top)
+        hijos = cruce2a2uniforme(mejores[i], mejores[j], a, b, ord_top)
         resultado.extend(hijos[:2])  # Ajoute les deux enfants
 
     return resultado
