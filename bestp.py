@@ -28,6 +28,6 @@ def find_best_p(n, m, num_runs=1000):
             best_dist = dist
     return best_p, best_dist
 
-p_opt, dist = find_best_p(297, 25, num_runs=1000)
+p_opt, dist = find_best_p(70, 10, num_runs=1000)
 print(p_opt)
 print("Distribución final:", np.round(dist, 4))

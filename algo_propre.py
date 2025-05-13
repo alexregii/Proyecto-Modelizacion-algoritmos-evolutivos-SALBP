@@ -46,6 +46,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 from multiprocessing import Process
+from bestp import *
 # prompt: leer datos de un .IN2 que tiene estas caracteristicas:
 # line 1: number n of tasks
 # lines 2-n+1: integer task times
@@ -157,7 +158,8 @@ def penal_sobrecarga(t):
 def score(sec, n, m, anterioridad, tiempos):
     bool, n_fallos = condiciones(sec, n, m, anterioridad)
     t = tiempo_grupo(sec, tiempos)
-    return 0.6*max(t) +0.2*penal_sobrecarga(t)+ 0.2*dispersion(t) + 1e4*n_fallos
+    media = sum(t) / len(t)
+    return 0.6*max(t) +0.2*penal_sobrecarga(t)+ 0.2*dispersion(t) + (media/10)*n_fallos
 
 #clasificar los individuos de una población del más al menos equilibrado
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
@@ -213,7 +215,8 @@ def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos):
     poblacion[1:] = class_rueda(poblacion[1:],n,m,anterioridad,tiempos)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
     poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
-
+    # for i in range(tercio,2*tercio):
+    #     poblacion[i]= copy.deepcopy(poblacion[0])
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos)
 
     poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
@@ -342,9 +345,7 @@ def tiempo_etapas(n,minT,maxT):
 def poblacion_iniciala(dim_pob,n,m,anterioridad,tiempos):
   poblacion = []
   sec = [0]*n
-  ord_top = matriz_a_lista_adyacencia(anterioridad)
   for i in range(dim_pob):
-
     for j in range(n):
         sec[j]= rd.randint(0,m-1)
     
@@ -355,9 +356,9 @@ def poblacion_iniciala(dim_pob,n,m,anterioridad,tiempos):
 
 def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
   poblacion = []
-  k = 1/2
+  k = 0.12819095477386935
   ord_top = matriz_a_lista_adyacencia(anterioridad)
-  for i in range(dim_pob):
+  for i in range(dim_pob//2):
     sec = [0]*n
     l = 1 # probabilidad
     for j in range(len(ord_top)):
@@ -370,9 +371,16 @@ def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos):
                         opciones = [prev_est - 1, prev_est,prev_est+1]
                     else:
                         opciones = [0, 0, 1]
-                    elegido=rd.choices(opciones, weights=[0.167,1-0.167,0], k=1)[0]
+                    elegido=rd.choices(opciones, weights=[k,0.99-k,0.01], k=1)[0]
                     sec[ord_top[j]] = elegido
     poblacion.append(sec.copy()) 
+
+  for i in range(dim_pob//2,dim_pob):
+    for j in range(n):
+        sec[j]= rd.randint(0,m-1)
+            
+    poblacion.append(sec.copy()) 
+    sec = [0]*n
   return poblacion
 
 
