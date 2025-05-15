@@ -56,38 +56,65 @@ $\\
 Dado que todas las tareas que deben preceder a otra deben asignarse a una estación anterior o, como máximo, a la misma estación que la tarea que las sigue, 
 las relaciones de precedencia imponen restricciones estrictas sobre la validez de las soluciones. También es necesario verificar que exactamente todos los grupos dados, y solo esos, aparezcan en los valores del arreglo solución.\\
 
-La función de evaluación de un individuo consiste esencialmente en devolver el tiempo más largo entre las estaciones. Penaliza significativamente a los individuos no válidos, 
-asignándoles un puntaje arbitrariamente grande.
-Por lo tanto, el objetivo del problema será encontrar el individuo que minimice esta función.
+La función de evaluación de un individuo consiste, esencialmente, en devolver el mayor tiempo entre estaciones. Por lo tanto, el objetivo del problema es encontrar el individuo que minimice dicha función, penalizando a aquellos que no cumplen con las restricciones previamente establecidas.\\
+
+La principal dificultad que enfrentamos en este trabajo fue la gestión de la diversidad de los individuos: encontrar un equilibrio entre una selección demasiado estricta, que conduce a una convergencia hacia un mínimo local, y una selección demasiado permisiva, que favorece en exceso la generación de individuos no válidos.
+
+\chapter{Génesis detallada del algoritmo}
+
+\section{Generación de una población inicial}
+
+Una población inicial es generada por la función \textit{población inicial}. Una población consiste simplemente en un arreglo de soluciones, cuya dimensión está determinada por el parámetro $dim\_pob$.
+
+\subsection*{Generar individuos aleatorios}
+
+Para llenar una población, nuestro primer enfoque fue generar individuos completamente aleatorios, sin tener cuenta de las restricciones. Suponíamos que, dado que nuestra función de evaluación penalizaba con un valor arbitrariamente alto a los individuos no válidos, acabaríamos, tras algunas generaciones, con una población compuesta mayoritariamente por individuos válidos.\\
+
+Sin embargo, las restricciones del problema eran tan estrictas que, incluso con grafos de apenas $6$ tareas con tiempos relativamente equilibrados y distribuidas en $3$ estaciones, obteníamos poblaciones con un $90\%$ de individuos no válidos.
+Esta minoría de individuos válidos no era suficiente para permitir que el algoritmo avanzara hacia algún punto estacionario.
+
+\subsection*{Generar individuos aleatorios hasta que cumplen las restricciones}
+
+Nuestro segundo enfoque consistió entonces en seguir generando individuos completamente aleatorios, hasta que cumplieran con las restricciones del problema, para luego añadirlos a la población.\\
+
+La verificación de las restricciones está a cargo de la función booleana \textit{condiciones}, que devuelve falso si un individuo \textit{sec} no contiene exactamente —y únicamente— valores entre $0$ y $m-1$, o si existe una relación de precedencia directa entre dos estaciones, especificada en la matriz correspondiente \textit{A}, que no se respeta en el individuo. Es decir, si:
+\[
+\exists i,j \in \{0,\dots,n-1\} \text{ tal que } A(i,j) = 1 \text{ y } sec[i] < sec[j]
+\]
+
+Sin embargo, el principal defecto de este enfoque se hizo evidente muy rápidamente: se necesitaba un número extremadamente alto de iteraciones para generar siquiera un solo individuo válido para la población.
+El algoritmo resultaba entonces especialmente lento, al punto de no llegar siquiera a completar la primera generación.
+
+\subsection*{Generar individuos mediante orden topológico}
+
+Con el fin de generar individuos con mayor probabilidad de cumplir con todas las restricciones, utilizamos la noción de orden topológico: un orden lineal —entre varios posibles— de los nodos de un grafo dirigido acíclico, representado en nuestro caso por la matriz de precedencia $A$. \\
+Utilizamos la función $topological\_sort$ de la biblioteca $networkx$ para extraer un orden topológico del grafo derivado de $A$ (véase la función $matriz\_a\_ \\ lista\_adyacencia$).\\
+
+De hecho, para cada individuo, la primera tarea en el orden topológico se asigna a la última estación $m-1$. Luego, para cada tarea siguiente ($ord\_top[i]$), se elige aleatoriamente (mediante $random.randint()$) una estación en función de la tarea anterior ($ord\_top[i-1]$), de manera que no comience después que esta: la misma estación o la inmediatamente anterior. \\
+
+Este enfoque nos permitió obtener un primer algoritmo funcional, pero presenta una limitación importante relacionada con la sobrecarga de la estación $0$. \\
+En efecto, durante la construcción de un individuo, la probabilidad de asignar una estación anterior con respecto a la tarea precedente es del $50\%$. Esto provoca un descenso rápido hacia la estación $0$, donde ya no es posible asignar estaciones más bajas. Como resultado, las tareas siguientes tienden a acumularse en dicha estación.\\
+
+Como resultado, nos enfrentamos a un problema de convergencia prematura. Todas las soluciones generadas eran muy similares entre sí, presentando sistemáticamente la sobrecarga de la estación $0$, y el algoritmo exploraba únicamente una porción muy limitada del espacio de soluciones posibles.
 
 
+\subsection*{Uniformización de la distribución de las estaciones}
 
+Con el fin de paliar la sobrecarga de la primera estación, reemplazamos el muestreo equiprobable mediante $random.randint()$ por un muestreo que permite uniformizar al máximo la distribución de las tareas entre las estaciones.\\
 
+Durante la generación de un individuo siguiendo un orden topológico, la probabilidad de que una tarea pertenezca a la estación anterior a la de la tarea precedente es $p$; la probabilidad de que pertenezca a la misma estación es $0.99 - p$; y la de que pertenezca a la estación siguiente es $0.01$.\\ 
 
+Después de varias pruebas, vimos que el valor óptimo de $p$ no puede determinarse de forma arbitraria y que debe calcularse en función del número de estaciones y de tareas del problema (ver archivo $bestp.py$).\\
+Simulamos un proceso aleatorio en el que una posición evoluciona a lo largo de una cadena de $m$ etapas, avanzando con una probabilidad p en cada iteración, durante $n$ pasos. La función $simulate\_chain$ repite esta simulación $num\_runs = 1000$ veces para estimar la frecuencia con la que se ocupa cada posición. Luego, $find\_best\_p$ busca el valor de $p$ que hace que esta distribución sea lo más uniforme posible, comparando la distribución obtenida con una distribución perfectamente uniforme y minimizando el error cuadrático.
 
+\subsection*{Combinación de los modos de generación}
 
+Aunque el modelo de generación de individuos siguiendo un orden topológico haya sido uniformizado, este sigue llevando a una estancación del algoritmo en un mínimo local.\\
 
+Para introducir una mayor diversidad a lo largo de las generaciones, decidimos generar una parte de la población de forma completamente aleatoria, sin restricciones. Tras varias pruebas, parece que la proporción óptima entre individuos generados por ambos modos es del $50\%$.\\
 
+Asociado a una función de evaluación que asigna una puntuación no arbitraria a los individuos no válidos, el algoritmo se acerca más a la solución exacta del problema. Para una cantidad de individuos generados inferior al $10\%$ del tamaño del espacio de búsqueda en el caso de los grafos más pequeños, o incluso al $10\,000\%$ para los más grandes, la solución calculada presenta un tiempo de ciclo que, en la mayoría de los casos, se sitúa alrededor de un $5\%$ por encima del valor de la solución óptima.\\
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+La incorporación de una variación aleatoria de los órdenes topológicos extraídos de $A$ en el modelo no parece ser particularmente eficaz, ya que conduce a resultados que no son mejores.
 
 \end{document}
