@@ -117,4 +117,31 @@ Asociado a una función de evaluación que asigna una puntuación no arbitraria 
 
 La incorporación de una variación aleatoria de los órdenes topológicos extraídos de $A$ en el modelo no parece ser particularmente eficaz, ya que conduce a resultados que no son mejores.
 
+\section{Función de evaluación}
+
+La función de evaluación $score$ está definida por: \\
+\[
+f(\text{individuo}) = 0.6 \cdot \text{tiempo de ciclo} + 0.2 \cdot \text{dispersión} + 0.1 \cdot \text{n\_fallos} \cdot \text{media}
+\]
+con:\\
+\begin{itemize}
+\item tiempo de ciclo : el tiempo máximo asignado a una estación.
+\item dispersión : una medida del equilibrio del tiempo entre las estaciones,\\
+igual a la diferencia entre el tiempo de ciclo y el tiempo mínimo asignado a una estación.
+\item $\text{n\_fallos}$ : el número de tareas que no respetan las restricciones del problema.
+\item media : el promedio de los tiempos entre las estaciones.
+\end{itemize}
+
+El ajuste de los coeficientes asociados a los términos de la función se determinó empíricamente. Asociados a nuestros mecanismos de selección y generación de la población inicial, permiten que el algoritmo avance lo más lejos posible hacia la solución exacta del problema.\\
+
+El peso asociado al tiempo de ciclo es el más alto, ya que es precisamente esta medida la que nos interesa en este problema y que buscamos minimizar.\\
+
+Decidimos integrar una medida del equilibrio de los tiempos entre las estaciones (la dispersión) por dos razones.\\
+La primera es que, al inicio de nuestro trabajo, debido a una mala interpretación del problema, definimos nuestra función de evaluación únicamente como una medida de equilibrio. Sin embargo, constatamos que resultaba relativamente eficaz, contribuyendo a la minimización del tiempo de ciclo.\\
+La segunda razón es que la inclusión de esta segunda medida permite valorar ciertos individuos portadores de estructuras potencialmente favorables para la reducción del tiempo de ciclo, aunque este último los penalice. Esto contribuye a favorecer la diversidad de los individuos válidos, lidos, una característica que buscamos maximizar para que el algoritmo no se estanque en un mínimo local.\\
+
+El término de penalización para los individuos no válidos (\(\text{n\_fallos} \times \text{media}\)) permite favorecer a aquellos individuos no válidos que violan menos restricciones en comparación con aquellos que las violan en mayor medida. Esto permite discriminar razonablemente entre individuos válidos y no válidos, al mismo tiempo que permite la reproducción de individuos que no necesariamente siguen el orden topológico definido durante la generación de la población.
+
+Hemos elegido multiplicar el número de violaciones de las restricciones por la media de los tiempos de las estaciones, con el fin de obtener un término de penalización que se ajuste propocionalmente a la escala de cada grafo considerado.
+
 \end{document}
