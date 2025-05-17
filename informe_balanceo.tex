@@ -58,7 +58,11 @@ las relaciones de precedencia imponen restricciones estrictas sobre la validez d
 
 La función de evaluación de un individuo consiste, esencialmente, en devolver el mayor tiempo entre estaciones. Por lo tanto, el objetivo del problema es encontrar el individuo que minimice dicha función, penalizando a aquellos que no cumplen con las restricciones previamente establecidas.\\
 
-La principal dificultad que enfrentamos en este trabajo fue la gestión de la diversidad de los individuos: encontrar un equilibrio entre una selección demasiado estricta, que conduce a una convergencia hacia un mínimo local, y una selección demasiado permisiva, que favorece en exceso la generación de individuos no válidos.
+La principal dificultad que enfrentamos en este trabajo fue la gestión de la diversidad de los individuos: encontrar un equilibrio entre una selección demasiado estricta, que conduce a una convergencia hacia un mínimo local, y una selección demasiado permisiva, que favorece en exceso la generación de individuos no válidos.\\
+
+Hemos decidido codificar la totalidad del problema sin utilizar bibliotecas específicamente dedicadas a los algoritmos genéticos. Dada la relativa complejidad del problema, especialmente en lo que respecta a la modelización de las restricciones de precedencia, resultó más sencillo partir desde cero que intentar adaptar funciones pensadas para estructuras más simples.\\
+Elegimos programar en Python, ya que este lenguaje resulta relativamente más cómodo en términos de indexación de matrices y gestión de memoria que lenguajes como Ada o C. La variedad de herramientas y bibliotecas disponibles en Python, junto con su buena documentación, también nos permitió resolver aspectos particulares como la generación de grafos para representar las soluciones, o el cálculo automático del orden topológico.
+
 
 \chapter{Génesis detallada del algoritmo}
 
@@ -143,5 +147,38 @@ La segunda razón es que la inclusión de esta segunda medida permite valorar ci
 El término de penalización para los individuos no válidos (\(\text{n\_fallos} \times \text{media}\)) permite favorecer a aquellos individuos no válidos que violan menos restricciones en comparación con aquellos que las violan en mayor medida. Esto permite discriminar razonablemente entre individuos válidos y no válidos, al mismo tiempo que permite la reproducción de individuos que no necesariamente siguen el orden topológico definido durante la generación de la población.
 
 Hemos elegido multiplicar el número de violaciones de las restricciones por la media de los tiempos de las estaciones, con el fin de obtener un término de penalización que se ajuste propocionalmente a la escala de cada grafo considerado.
+
+\section{Selección, recombinación y reproducción}
+
+Los modulos de selección, recombinación y reproducción están implementados mediante una única función: $seleccion\_rueda$. En esta sección, se presenta el mecanismo que ha demostrado el mejor rendimiento tras la experimentación.
+\\
+
+\subsection{Selección}
+
+En cada generación, se conserva el mejor individuo sin aplicarle ninguna transformación. Este individuo se determina mediante una ordenación basada en el valor de su puntuación (\textit{clasificación}).\\
+
+Para determinar qué individuos se reproducen, recurrimos a una selección por ruleta entre los individuos restantes. Esta selección toma la forma de una nueva ordenación, esta vez de tipo probabilístico ($class_rueda$).\\
+El peso de cada individuo es igual a la diferencia entre su puntuación y la puntuación máxima entre los individuos comparados. La función $random.sample()$ permite realizar automáticamente un muestreo sin reemplazo, normalizado en función de estos pesos. Los individuos seleccionados se añaden uno a uno a una nueva subpoblación.\\
+
+La selección por torneo, aunque basada en un principio similar, tiende a provocar un estancamiento prematuro de las soluciones. Es razonable suponer que, a medida que avanzan las generaciones, este tipo de selección más estricta favorece la reproducción repetitiva de los mismos individuos, lo que reduce la diversidad de la población.
+
+\subsection{Recombinación}
+
+Una vez conservado el mejor individuo y el resto ordenado mediante selección por ruleta, aplicamos las siguientes transformaciones: el primer tercio de la población se cruza, el segundo tercio se mantiene sin cambios y el último tercio se regenera utilizando $poblacion\_inicial$.
+Posteriormente, se aplica una operación de mutación a todos los individuos, con excepción del mejor.\\
+
+Las proporciones mencionadas se determinaron experimentalmente. Se ha comprobado que un equilibrio entre población reproducida y población regenerada es el más eficaz: si la proporción de individuos reproducidos es demasiado alta, la diversidad se reduce en exceso; mientras que si la proporción de individuos regenerados es demasiado elevada, la diversidad se vuelve excesiva y el algoritmo converge hacia una solución no válida.
+
+\subsection{Reproducción}
+
+Utilizamos un cruce semi-uniforme. Entre los individuos seleccionados, elegimos aleatoriamente dos individuos sin reemplazo ($cruce$). A partir del intercambio de entre 1 y \( \frac{n}{4} \) genes seleccionados aleatoriamente siguiendo el orden topológico, se generan dos individuos hijos ($cruce2a2uniforme)$. Para mantener el tamaño de la población, solo la mitad de los individuos diferentes previamente seleccionados realmente se reproducen. \\
+Aunque pueda parecer contraintuitivo, conservar dos hijos reduciendo a la mitad el número de cruces resulta más eficaz que conservar uno y permitir que todos los individuos se reproduzcan. Podemos suponer que la diversidad depende aquí más de la variedad de la descendencia que de los individuos que se reproducen.\\
+
+Las restricciones del problema son tan estrictas que un cruce completamente uniforme no resulta efectivo: casi todos los individuos generados por dicho cruce son inválidos.
+
+\subsection{Mutación}
+
+Aplicamos un único tipo de mutación que consiste en mover aleatoriamente una tarea a una estación adyacente. Aplicada a toda la población excepto al mejor individuo, esta mutación permite no aumentar significativamente el número de individuos inválidos.\\
+Las mutaciones más pronunciadas, como el intercambio aleatorio de estaciones entre dos tareas, alteran demasiado la estructura de los individuos.
 
 \end{document}
