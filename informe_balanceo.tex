@@ -172,7 +172,9 @@ Las proporciones mencionadas se determinaron experimentalmente. Se ha comprobado
 \subsection{Reproducción}
 
 Utilizamos un cruce semi-uniforme. Entre los individuos seleccionados, elegimos aleatoriamente dos individuos sin reemplazo ($cruce$). A partir del intercambio de entre 1 y \( \frac{n}{4} \) genes seleccionados aleatoriamente siguiendo el orden topológico, se generan dos individuos hijos ($cruce2a2uniforme)$. Para mantener el tamaño de la población, solo la mitad de los individuos diferentes previamente seleccionados realmente se reproducen. \\
-Aunque pueda parecer contraintuitivo, conservar dos hijos reduciendo a la mitad el número de cruces resulta más eficaz que conservar uno y permitir que todos los individuos se reproduzcan. Podemos suponer que la diversidad depende aquí más de la variedad de la descendencia que de los individuos que se reproducen.\\
+
+Aunque pueda parecer contraintuitivo, conservar dos hijos por cruce, reduciendo así a la mitad el número de cruces, resulta más eficaz que conservar solo uno y permitir que todos los individuos se reproduzcan. Podemos suponer que, en este caso, la diversidad depende más de la variedad dentro de la descendencia que del número de individuos que participan en la reproducción.\\
+De hecho, tras un cierto número de generaciones, los individuos que logran reproducirse tienden a parecerse cada vez más entre sí, mientras que los generados aleatoriamente presentan puntuaciones generalmente mucho más bajas, al no beneficiarse de la adaptación acumulada. Por ello, resulta más interesante generar más variedad a partir de una fracción reducida de una población que se ha vuelto muy homogénea.\\
 
 Las restricciones del problema son tan estrictas que un cruce completamente uniforme no resulta efectivo: casi todos los individuos generados por dicho cruce son inválidos.
 
