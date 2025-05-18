@@ -18,7 +18,7 @@ def find_best_p(n, m, num_runs=1000):
     best_p = None
     best_score = float('inf')
     best_dist = None
-    for p in np.linspace(0.01, 0.99, 200):
+    for p in np.linspace(0.01, 0.5, 200):
         dist = simulate_chain(n, m, p, num_runs)
         uniform = np.ones(m) / m
         score = np.sum((dist - uniform) ** 2)  # error cuadrático medio
