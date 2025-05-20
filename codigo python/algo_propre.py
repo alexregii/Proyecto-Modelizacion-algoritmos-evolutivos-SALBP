@@ -491,7 +491,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     endo = True
     max_score_prec = 10000
     num_sol = math.comb(n, m)
-    delay = 1000
+    """delay = 1000"""
     for i in range(no_gen):
         if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
             print("GENERACION:", i)
@@ -503,12 +503,12 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
         
         
         k += dim_pob
-        if i % delay == 0 and i > 0:     
+        """if i % delay == 0 and i > 0:     
             if score(poblacion[0], n, m, anterioridad, tiempos) == max_score_prec:
                 for i in range(len(poblacion)):
                     print("----")
                     endo = False    
-                    max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
+                    max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)"""
 
         poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos,p)
         endo = True
