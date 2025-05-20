@@ -72,6 +72,51 @@ def read_in2_data(filename):
     
     return n, task_times, matriz_from_rel(n,precedence_relations)
 
+# def read_alb_file(filename):
+    try:
+        with open(filename, 'r', encoding='latin-1') as f:
+            lines = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return None, None, None
+
+    idx = 0
+    if "<number of tasks>" in lines[idx]:
+        idx += 1
+        n = int(lines[idx])
+        idx += 1
+    else:
+        raise ValueError("Format incorrect : <number of tasks> manquant")
+    if "<cycle time>" in lines[idx]:
+        idx += 1
+        cycle_time = int(lines[idx])
+        idx += 1
+    else:
+        cycle_time = None
+    if "<order strength>" in lines[idx]:
+        idx += 1
+        order_strength = float(lines[idx])
+        idx += 1
+    else:
+        order_strength = None
+    if "<task times>" in lines[idx]:
+        idx += 1
+        task_times = [0] * n
+        while idx < len(lines) and not lines[idx].startswith("<"):
+            task_id, time = map(int, lines[idx].split())
+            task_times[task_id - 1] = time
+            idx += 1
+    else:
+        raise ValueError("Format incorrect : <task times> manquant")
+    precedence_matrix = [[0 for _ in range(n)] for _ in range(n)]
+    if "<precedence relations>" in lines[idx]:
+        idx += 1
+        while idx < len(lines) and not lines[idx].startswith("<end>"):
+            i, j = map(int, lines[idx].split(','))
+            precedence_matrix[i - 1][j - 1] = 1
+            idx += 1
+    return n, task_times, precedence_matrix
+
 def matriz_from_rel(n, relations):
     matriz = [[0] * n for _ in range(n)]
     for i, j in relations:
@@ -106,14 +151,15 @@ def condiciones(sec, n, m, anterioridad):
 def dispersion(t):
     return max(t) - min(t)
 def penal_sobrecarga(t):
-   res=np.std(t)
-   return res
+   media = sum(t) / len(t)
+   res=sum(max(0, load - media) for load in t)
+   return res/len(t)
     
 def score(sec, n, m, anterioridad, tiempos):
     bool, n_fallos = condiciones(sec, n, m, anterioridad)
     t = tiempo_grupo(sec, tiempos)
     media = sum(t) / len(t)
-    return 0.6*max(t) + 0.2*dispersion(t) + 0.1*(media)*n_fallos+0.2*penal_sobrecarga(t)
+    return 0.6*max(t) + 0.2*dispersion(t) + (media)*n_fallos*0.1 #0.2*penal_sobrecarga(t)
 
 #clasificar los individuos de una población del más al menos equilibrado
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
@@ -151,10 +197,7 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos,p):
     poblacion[0] = clasificacion(copy.deepcopy(poblacion), n, m, anterioridad, tiempos)[0]
     poblacion[1:] = class_torneo(poblacion[1:],n,m,anterioridad,tiempos,2)
     ord_top = matriz_a_lista_adyacencia(anterioridad)
-    poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
-    # for i in range(tercio, 2 * tercio):
-    #     poblacion[i] = copy.deepcopy(poblacion[0])
-    
+    poblacion[:tercio*2] = cruce(poblacion[:tercio*2], ord_top)
     poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos,p)
 
     poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
@@ -164,25 +207,75 @@ def seleccion_corto(poblacion, n, m, anterioridad, tiempos,p):
     
     return poblacion
 
-def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos,p):
-    tercio = len(poblacion) // 3
+def seleccion_corto_rueda(poblacion, n, m, anterioridad, tiempos, p):
+
+    tercio = len(poblacion) // 3 # Taille d’un tiers
+    T = tercio
+
+    # 1. Met à jour le meilleur
     poblacion[0] = clasificacion(copy.deepcopy(poblacion), n, m, anterioridad, tiempos)[0]
-    poblacion[1:] = class_rueda(poblacion[1:],n,m,anterioridad,tiempos)
+
+    # 2. Sélection par roulette pour le reste
+    poblacion[1:] = class_rueda(poblacion[1:], n, m, anterioridad, tiempos)
+
+    # 3. Génère l'ordre topologique
     ord_top = matriz_a_lista_adyacencia(anterioridad)
-    poblacion[:tercio] = cruce(poblacion[:tercio], ord_top)
-    # for i in range(tercio,2*tercio):
-    #     poblacion[i]= copy.deepcopy(poblacion[0])
-    poblacion[2 * tercio:] = poblacion_inicial(len(poblacion) - 2 * tercio, n, m, anterioridad, tiempos,p)
+
+    # 4. Croisement : génère 2*T individus à partir du top 1/3
+    nuevos = cruce(poblacion[:T], ord_top, n,p)
+
+    # 5. Remplace les deux premiers tiers par les parents + enfants
+    poblacion[:2*T] = nuevos  # taille 2T
+
+    # 6. Génère le dernier tiers aléatoirement
+    poblacion[2*T:] = poblacion_inicial(len(poblacion) - 2*T, n, m, anterioridad, tiempos, p)
+
+    # 7. Mutation sur toute la population sauf le meilleur (qui reste en [0])
+    poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
+
+    return poblacion
+
+
+
+
+def seleccion_corto_ruedaq(poblacion, n, m, anterioridad, tiempos,p):
+    cuarto = len(poblacion) // 10
+    poblacion[0] = clasificacion(copy.deepcopy(poblacion), n, m, anterioridad, tiempos)[0]
+    poblacion = class_rueda(poblacion,n,m,anterioridad,tiempos)
+    ord_top = matriz_a_lista_adyacencia(anterioridad)
+    poblacion[:7*cuarto] = cruce(poblacion[:7 *cuarto], ord_top)
+    #for i in range(tercio,2*tercio):
+     #  poblacion[i]= copy.deepcopy(poblacion[0])
+    poblacion[9*cuarto:] = poblacion_inicial(len(poblacion) - cuarto*9, n, m, anterioridad, tiempos,p)
 
     poblacion[1:] = mutacion(copy.deepcopy(poblacion[1:]), n, m)
         
     return poblacion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
 def class_rueda(poblacion, n, m, anterioridad, tiempos):
     scores = [score(ind, n, m, anterioridad, tiempos) for ind in poblacion]
     max_score = max(scores)
-    weights = [np.sqrt((max_score - s)) + 1e-6 for s in scores]
+    weights = [np.sqrt((max_score - s)) for s in scores]
     selected_indices = rd.choices(range(len(poblacion)), weights=weights, k=len(poblacion))
     return [poblacion[i] for i in selected_indices]
 
@@ -238,34 +331,35 @@ def cruce2a2dospuntos(ind1,ind2,a,b,ord_top):
   result.append(nvind2)
   return result
 
-#Cruce general
-#poblacion = total de la poblacion / 2
-def cruce2a2uniforme(ind1,ind2,a,b,ord_top):
-    num_mut=rd.randint(1,3)
+
+def cruce2a2uniforme(ind1, ind2, a, b, ord_top, n,p):
+    num_mut = rd.randint(1,2)#*(1+abs(0.22-p)*357))
     nvind1 = ind1.copy()
     nvind2 = ind2.copy()
-    result=[]
-    for i in range(num_mut):
-        j=rd.randint(0,len(ord_top)-1)
-        nvind1[ord_top[j]]=ind2[ord_top[j]]
-        nvind2[ord_top[j]]=ind1[ord_top[j]]
-    result.append(nvind1)
-    result.append(nvind2)
-    return result
-def cruce(mejores, ord_top):
+    nvind3= ind1.copy()
+    nvind4 = ind2.copy()
+    for _ in range(num_mut):
+        j = rd.randint(0, len(ord_top) - 1)
+        nvind1[ord_top[j]] = ind2[ord_top[j]]
+        nvind2[ord_top[j]] = ind1[ord_top[j]]
+        i = rd.randint(0, len(ord_top) - 1)
+        nvind3[ord_top[i]] = nvind1[ord_top[i]]
+        nvind4[ord_top[i]] = nvind2[ord_top[i]]
+    return [nvind1, nvind2, nvind3, nvind4]
+
+def cruce(mejores, ord_top, n,p):
     resultado = []
     resultado.append(mejores[0])  # Garde le meilleur
 
-    num_cruces = (len(mejores) - 1) // 2  # Nombre de croisements à faire
+    num_cruces = (len(mejores)) //2 # Nombre de croisements à faire
 
     for _ in range(num_cruces):
-        # Tirer 2 parents distincts au hasard
         i, j = rd.sample(range(len(mejores)), 2)
         a = rd.randint(0, len(ord_top) // 2)
         b = rd.randint(a, len(ord_top))
 
-        hijos = cruce2a2uniforme(mejores[i], mejores[j], a, b, ord_top)
-        resultado.extend(hijos[:2])  # Ajoute les deux enfants
+        hijos = cruce2a2uniforme(mejores[i], mejores[j], a, b, ord_top, n,p)
+        resultado.extend(hijos)  # Ajoute tous les 4 enfants
 
     return resultado
 
@@ -320,34 +414,35 @@ def poblacion_iniciala(dim_pob,n,m,anterioridad,tiempos):
     
   return poblacion
 
-def poblacion_inicial(dim_pob,n,m,anterioridad,tiempos,p):
-  poblacion = []
-  ord_top = matriz_a_lista_adyacencia(anterioridad)
-  p=p#+(rd.uniform(-p/10,p/10))
-  for i in range(dim_pob//2):
-    sec = [0]*n
-    l = 1 # probabilidad
-    for j in range(len(ord_top)):
-            if l==1:
+def poblacion_inicial(dim_pob, n, m, anterioridad, tiempos, p):
+    poblacion = []
+    ord_top = matriz_a_lista_adyacencia(anterioridad)
+    cuarto = dim_pob // 4
+
+    for i in range(dim_pob // 2):
+        sec = [0] * n
+        l = 1  # probabilidad
+        for j in range(len(ord_top)):
+            if l == 1:
                 if j == 0:
                     sec[ord_top[j]] = m - 1  # primera tarea a última estación
                 else:
                     prev_est = sec[ord_top[j - 1]]
                     if prev_est - 1 >= 0:
-                        opciones = [prev_est - 1, prev_est,prev_est+1]
+                        opciones = [prev_est - 1, prev_est, prev_est + 1]
                     else:
                         opciones = [0, 0, 1]
-                    elegido=rd.choices(opciones, weights=[p,0.99-p,0.01], k=1)[0]
+                    elegido = rd.choices(opciones, weights=[p, 0.99 - p, 0.01], k=1)[0]
                     sec[ord_top[j]] = elegido
-    poblacion.append(sec.copy()) 
+        poblacion.append(sec.copy())
 
-  for i in range(dim_pob//2,dim_pob):
-    for j in range(n):
-        sec[j]= rd.randint(0,m-1)
-            
-    poblacion.append(sec.copy()) 
-    sec = [0]*n
-  return poblacion
+    for i in range(dim_pob // 2, dim_pob):
+        sec = [0] * n  # ← Corregido: mover esta línea aquí
+        for j in range(n):
+            sec[j] = rd.randint(0, m - 1)
+        poblacion.append(sec.copy())
+
+    return poblacion
 
 
 
@@ -388,7 +483,7 @@ def grafo(matriz, sec, tiempo, score, m,fig_id):
 
 def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiempos,fig_id):
     plt.ion()  # Activar modo interactivo
-    p=find_best_p(n,m,1000)[0]
+    p=find_best_p(n,m,500)[0]
     k = 0
     poblacion = pob_init
     tuplas = []
@@ -396,7 +491,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     endo = True
     max_score_prec = 10000
     num_sol = math.comb(n, m)
-    delay = 100000
+    delay = 1000
     for i in range(no_gen):
         if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
             print("GENERACION:", i)
@@ -408,13 +503,13 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
         
         
         k += dim_pob
-        # if i % delay == 0 and i > 0:     
-        #     if score(poblacion[0], n, m, anterioridad, tiempos) == max_score_prec:
-        #         for i in range(len(poblacion)):
-        #             poblacion[1:] = mutacion(poblacion[1:],n,m)
-        #         print(k)
-        #         endo = False    
-        #     max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
+        if i % delay == 0 and i > 0:     
+            if score(poblacion[0], n, m, anterioridad, tiempos) == max_score_prec:
+                for i in range(len(poblacion)):
+                    print("----")
+                    endo = False    
+                    max_score_prec = score(poblacion[0], n, m, anterioridad, tiempos)
+
         poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos,p)
         endo = True
             
@@ -425,6 +520,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     print("Valor del resultado 1:", score(poblacion[0], n, m, anterioridad, tiempos))
     print("Número de soluciones posibles:", num_sol)
     print("Número de soluciones calculadas:", k)
+    print("Porcentajes del espacio explaroda", k/num_sol*100," %")
     return poblacion[0], (tipo_seleccion.__name__, tuplas)
 
 #Matriz a lista de adyaciencia
