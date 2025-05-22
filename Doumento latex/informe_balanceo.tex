@@ -208,6 +208,8 @@ Las restricciones del problema son tan estrictas que un cruce completamente unif
 Este cruce resulta muy eficaz si, y sólo si, el número \(k\) de genes a intercambiar está adecuadamente ajustado al grafo considerado. No hemos encontrado una función satisfactoria que relacione \(k\) con las características del grafo, ya sea en términos de dimensiones (\(m\), \(n\)) o de complejidad (medidas de convergencia o divergencia del grafo de precedencias, número total de relaciones de precedencia).\\
 Dado que sabemos que el algoritmo converge en pocas iteraciones (del orden de un centenar) y sin una fase prolongada de estancamiento hacia una solución muy cercana a la óptima cuando el parámetro \(k\) está bien ajustado, hemos optado por el siguiente enfoque. Inicialmente fijamos \(k = 1\), y cuando la solución permanece sin cambios durante más de 20 generaciones, aumentamos \(k\) en 5 y regeneramos completamente la población. Este método implica, por lo tanto, una reinicialización completa del algoritmo. Sin embargo, dado el número relativamente bajo de iteraciones necesarias para evaluar si el valor de \(k\) es adecuado, esta estrategia resulta igualmente viable.
 
+Por supuesto, hasta alcanzar el número de generaciones definido por el usuario, almacenamos por separado el mejor individuo obtenido en cada reinicialización. Al final, el algoritmo devuelve la mejor de las soluciones entre todas las almacenadas.
+
 \subsection{Mutación}
 
 Aplicamos un único tipo de mutación que consiste en mover aleatoriamente una tarea a una estación adyacente. Aplicada a toda la población excepto al mejor individuo, esta mutación permite no aumentar significativamente el número de individuos inválidos.\\
