@@ -493,6 +493,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     num_sol = math.comb(n, m)
     add = 0
     delay = 20
+    mejores_sol = []
     for i in range(no_gen):
         if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
             print("GENERACION:", i)
@@ -509,20 +510,22 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
                 add += 5
                 print("---Aumento tasa de mutación---, add: ",add)
                 print("delay; : ",delay)
+                mejores_sol.append(poblacion[0])
                 poblacion = poblacion_inicial(dim_pob, n, m, anterioridad, tiempos, p)
                 delay = i - delay
             max_score_prec = score(poblacion[0],n,m,anterioridad,tiempos)
         poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos,p,add)
             
-
+    clasificacion(mejores_sol, n, m, anterioridad, tiempos)
     plt.ioff()  # Desactivar modo interactivo
     plt.figure(fig_id)  # Asegura mostrar la figura correcta
     plt.show()
-    print("Valor del resultado 1:", score(poblacion[0], n, m, anterioridad, tiempos))
+    print("Valor del resultado 1:", score(mejores_sol[0], n, m, anterioridad, tiempos))
     print("Número de soluciones posibles:", num_sol)
     print("Número de soluciones calculadas:", k)
     print("Porcentajes del espacio explaroda", k/num_sol*100," %")
-    return poblacion[0], (tipo_seleccion.__name__, tuplas)
+    return mejores_sol[0], (tipo_seleccion.__name__, tuplas)
+
 
 #Matriz a lista de adyaciencia
 def matriz_a_lista_adyacencia(matriz):
