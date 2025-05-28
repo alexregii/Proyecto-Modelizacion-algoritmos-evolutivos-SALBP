@@ -1,3 +1,4 @@
+
 \documentclass[12pt,a4paper]{report}
 
 \title{Proyecto de modelización - Programación evolutiva\\ \textbf{El problema de balanceo de líneas de montaje}} 
@@ -44,6 +45,7 @@ En cambio, la variante sobre la que hemos trabajado (SALBP-2) tiene como objetiv
 El principal objetivo de este trabajo fue profundizar en los algoritmos genéticos, y no solo desde un punto de vista teórico, sino también desde uno práctico, aplicando este tipo de algoritmos a un problema real.\\
 Concretamente, se buscó modelizar el problema SALBP-2, explorando cómo representar las soluciones, definir operadores genéticos efectivos y adecuarse a las restricciones específicas del dominio del problema.\\
 A través de este proceso, se trató de comprender mejor la capacidad y las limitaciones de usar este tipo de metodología en contextos aplicados, así como desarrollar habilidades para el diseño e implementación de este tipo de algoritmos.
+
 \section{Presentación general del algoritmo genético}
 
 Para resolver este problema, implementamos un algoritmo genético. 
@@ -175,20 +177,21 @@ Hemos elegido multiplicar el número de violaciones de las restricciones por la 
 
 \section{Selección, recombinación y reproducción}
 
-Los módulos de selección, recombinación y reproducción están implementados mediante una única función: \texttt{seleccion\_rueda}. En esta sección, se presenta el mecanismo que ha demostrado el mejor rendimiento tras la experimentación, tras haberlo enfrentado a otros métodos de selección como por ejemplo torneo.
+Los módulos de selección, recombinación y reproducción están implementados mediante una única función: \texttt{seleccion}. En esta sección, se presenta el mecanismo que ha demostrado el mejor rendimiento tras la experimentación, tras haberlo enfrentado a otros métodos de selección como por ejemplo torneo.
 
 \subsection{Selección}
 
-En cada generación, se conserva el mejor individuo sin aplicarle ninguna transformación. Este individuo se determina mediante una ordenación basada en el valor de su puntuación (\texttt{clasificación}). Esta estrategia se conoce como elitismo y garantiza que la mejor solución encontrada no empeore con el paso de las generaciones.
+En cada generación, se conserva el mejor individuo sin aplicarle ninguna transformación. Este individuo se determina mediante una ordenación basada en el valor de su puntuación (\texttt{clasificación}). Esta forma de elitismo garantiza que la mejor solución encontrada no empeore con el paso de las generaciones.\\
 
-Para determinar qué individuos se reproducen, recurrimos a una selección por ruleta entre los individuos restantes. Esta selección toma la forma de una nueva ordenación, esta vez de tipo probabilístico (\texttt{class\_rueda}).
-El peso de cada individuo es igual a la diferencia entre su puntuación y la puntuación máxima entre los individuos comparados. La función \texttt{random.sample()} permite realizar automáticamente un muestreo sin reemplazo, normalizado en función de estos pesos. Los individuos seleccionados se añaden uno a uno a una nueva subpoblación.
+Para determinar qué individuos se reproducen entre los individuos restantes, utilizamos una selección por torneo, en la que se elige un solo individuo entre cuatro seleccionados al azar (\texttt{class\_torneo}). Este método permite la reproducción de individuos potencialmente nuevos por completo, generados en la generación anterior, lo que favorece la introducción de diversidad genética. Sin embargo, para mantener una presión selectiva que favorezca a los individuos con mejor desempeño —a menudo resultado de cruces anteriores—, hemos optado por comparar grupos de cuatro individuos a la vez.  Este enfoque logra un equilibrio entre diversidad y velocidad de convergencia.\\
 
-La selección por torneo, aunque basada en un principio similar, tiende a provocar un estancamiento prematuro de las soluciones. Es razonable suponer que, a medida que avanzan las generaciones, este tipo de selección más estricta favorece la reproducción repetitiva de los mismos individuos, lo que reduce la diversidad de la población.
+También probamos la selección por ruleta (\texttt{class\_rueda}). Esta selección adopta la forma de una nueva ordenación, esta vez de tipo probabilístico. El peso de cada individuo se calcula como la diferencia entre su puntuación y la puntuación máxima entre los individuos comparados. La función \texttt{random.sample()} permite realizar automáticamente un muestreo sin reemplazo, normalizado en función de estos pesos. Los individuos seleccionados se añaden uno a uno a una nueva subpoblación.\\
+Sin embargo, esta selección resulta menos eficaz que la selección por torneo, ya que es más elitista: los individuos con mayor probabilidad de ser elegidos tienden a ser siempre los mismos, lo que provoca una estancación más rápida del algoritmo.
+
 
 \subsection{Recombinación}
 
-Una vez conservado el mejor individuo y el resto ordenado mediante selección por ruleta, aplicamos las siguientes transformaciones: el primer tercio de la población se cruza, el segundo tercio se mantiene sin cambios y el último tercio se regenera utilizando \texttt{poblacion\_inicial}.
+Una vez conservado el mejor individuo y el resto ordenado mediante selección por ruleta, aplicamos las siguientes transformaciones: el primer tercio de la población se cruza y los individuos hijos reemplazan a los dos primeros tercios de la población; el último tercio se regenera utilizando \texttt{poblacion\_inicial}.
 Posteriormente, se aplica una operación de mutación a todos los individuos, con excepción del mejor.
 
 Las proporciones mencionadas se determinaron experimentalmente. Se ha comprobado que un equilibrio entre población reproducida y población regenerada es el más eficaz: si la proporción de individuos reproducidos es demasiado alta, la diversidad se reduce en exceso; mientras que si la proporción de individuos regenerados es demasiado elevada, la diversidad se vuelve excesiva y el algoritmo no converge hacia una solución válida.
@@ -198,17 +201,18 @@ Se consideraron dos tipos de operadores de cruce: el cruce en dos puntos y el cr
 
 Durante una primera parte de nuestra experimentación se utilizó un operador de cruce en dos puntos. Este tipo de cruce parecía, en teoría, mas eficaz, ya que tendía a conservar la estructura de los individuos validos. Sin embargo, tras hacer comparaciones entre ambos métodos, lo que inicialmente parecía una ventaja resulto contraproducente: ya que al conservar tanto la estructura, se reducía drásticamente la variabilidad de las soluciones. Y por esta razón, se optó finalmente por el uso de un cruce uniforme.
 
-En concreto, utilizamos un cruce semi-uniforme. Entre los individuos seleccionados, elegimos aleatoriamente dos individuos sin reemplazo ($cruce$). A partir del intercambio de entre 1 y $\frac{n}{4} $ genes seleccionados aleatoriamente siguiendo el orden topológico, se generan dos individuos hijos (\texttt{cruce2a2uniforme}). Para mantener el tamaño de la población, solo la mitad de los individuos diferentes previamente seleccionados realmente se reproducen.
+En concreto, utilizamos un cruce semi-uniforme. Entre los individuos seleccionados, elegimos aleatoriamente dos individuos sin reemplazo ($cruce$). A partir del intercambio de $k$ genes seleccionados aleatoriamente siguiendo el orden topológico, se generan cuatro individuos hijos (\texttt{cruce2a2uniforme}).
 
-Aunque pueda parecer contraintuitivo, conservar dos hijos por cruce, reduciendo así a la mitad el número de cruces, resulta más eficaz que conservar solo uno y permitir que todos los individuos se reproduzcan. Podemos suponer que, en este caso, la diversidad depende más de la variedad dentro de la descendencia que del número de individuos que participan en la reproducción.\\
+Aunque pueda parecer contraintuitivo, conservar cuatro hijos por cruce, reduciendo así a la mitad el número de cruces, resulta más eficaz que conservar solo dos y permitir que todos los individuos se reproduzcan. Podemos suponer que, en este caso, la diversidad depende más de la variedad dentro de la descendencia que del número de individuos que participan en la reproducción.\\
 De hecho, tras un cierto número de generaciones, los individuos que logran reproducirse tienden a parecerse cada vez más entre sí, mientras que los generados aleatoriamente presentan puntuaciones generalmente mucho más bajas, al no beneficiarse de la adaptación acumulada. Por ello, resulta más interesante generar más variedad a partir de una fracción reducida de una población que se ha vuelto muy homogénea.
 
-Las restricciones del problema son tan estrictas que un cruce completamente uniforme no resulta efectivo: casi todos los individuos generados por dicho cruce son inválidos.
+Las restricciones del problema son tan estrictas que un cruce completamente uniforme no resulta efectivo: casi todos los individuos generados por dicho cruce son inválidos.\\
 
 Este cruce resulta muy eficaz si, y sólo si, el número \(k\) de genes a intercambiar está adecuadamente ajustado al grafo considerado. No hemos encontrado una función satisfactoria que relacione \(k\) con las características del grafo, ya sea en términos de dimensiones (\(m\), \(n\)) o de complejidad (medidas de convergencia o divergencia del grafo de precedencias, número total de relaciones de precedencia).\\
-Dado que sabemos que el algoritmo converge en pocas iteraciones (del orden de un centenar) y sin una fase prolongada de estancamiento hacia una solución muy cercana a la óptima cuando el parámetro \(k\) está bien ajustado, hemos optado por el siguiente enfoque. Inicialmente fijamos \(k = 1\), y cuando la solución permanece sin cambios durante más de 20 generaciones, aumentamos \(k\) en 5 y regeneramos completamente la población. Este método implica, por lo tanto, una reinicialización completa del algoritmo. Sin embargo, dado el número relativamente bajo de iteraciones necesarias para evaluar si el valor de \(k\) es adecuado, esta estrategia resulta igualmente viable.
+Dado que sabemos que el algoritmo converge en pocas iteraciones (del orden de un centenar) y sin una fase prolongada de estancamiento hacia una solución muy cercana a la óptima cuando el parámetro \(k\) está bien ajustado, hemos optado por el siguiente enfoque. Inicialmente fijamos \(k = 1\), y cuando la solución permanece sin cambios durante más de 20 generaciones, aumentamos \(k\) en 2 y regeneramos completamente la población. Este método implica, por lo tanto, una reinicialización completa del algoritmo. Sin embargo, dado el número relativamente bajo de iteraciones necesarias para evaluar si el valor de \(k\) es adecuado, esta estrategia resulta  viable.
 
 Por supuesto, hasta alcanzar el número de generaciones definido por el usuario, almacenamos por separado el mejor individuo obtenido en cada reinicialización. Al final, el algoritmo devuelve la mejor de las soluciones entre todas las almacenadas.
+
 
 \subsection{Mutación}
 
