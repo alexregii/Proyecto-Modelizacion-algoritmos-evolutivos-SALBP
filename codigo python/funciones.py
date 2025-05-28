@@ -30,49 +30,7 @@ def read_in2_data(filename):
         i, j = map(int, line.strip().split(','))
         precedence_relations.append((i, j))  
     return n, task_times, matriz_from_rel(n,precedence_relations)
-    try:
-        with open(filename, 'r', encoding='latin-1') as f:
-            lines = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found.")
-        return None, None, None
-    idx = 0
-    if "<number of tasks>" in lines[idx]:
-        idx += 1
-        n = int(lines[idx])
-        idx += 1
-    else:
-        raise ValueError("Format incorrect : <number of tasks> manquant")
-    if "<cycle time>" in lines[idx]:
-        idx += 1
-        cycle_time = int(lines[idx])
-        idx += 1
-    else:
-        cycle_time = None
-    if "<order strength>" in lines[idx]:
-        idx += 1
-        order_strength = float(lines[idx])
-        idx += 1
-    else:
-        order_strength = None
-    if "<task times>" in lines[idx]:
-        idx += 1
-        task_times = [0] * n
-        while idx < len(lines) and not lines[idx].startswith("<"):
-            task_id, time = map(int, lines[idx].split())
-            task_times[task_id - 1] = time
-            idx += 1
-    else:
-        raise ValueError("Format incorrect : <task times> manquant")
-    precedence_matrix = [[0 for _ in range(n)] for _ in range(n)]
-    if "<precedence relations>" in lines[idx]:
-        idx += 1
-        while idx < len(lines) and not lines[idx].startswith("<end>"):
-            i, j = map(int, lines[idx].split(','))
-            precedence_matrix[i - 1][j - 1] = 1
-            idx += 1
-    return n, task_times, precedence_matrix
-
+    
 def matriz_from_rel(n, relations):
     matriz = [[0] * n for _ in range(n)]
     for i, j in relations:
@@ -88,17 +46,26 @@ def tiempo_grupo(sec, tiempos):
     max_val = max(sec)
     return [suma.get(i, 0) for i in range(max_val + 1)]
 
-def condiciones(sec, n, m, anterioridad):
+_condiciones_cache={}
+def condiciones(sec, n, m, anterioridad):  
+    # Crear una clave hashable para el cache
+    key = (tuple(sec), n, m, str(anterioridad))
+    if key in _condiciones_cache:
+        return _condiciones_cache[key]
     if sorted(set(sec)) != list(range(m)):
-      return False,1e7
-    bool=True
-    n_fallos=0
+        result = (False, 1e7)
+        _condiciones_cache[key] = result
+        return result
+    bool_val = True
+    n_fallos = 0
     for k in range(len(sec)):
         for i in range(len(sec)):
             if anterioridad[k][i] == 1 and sec[k] < sec[i]:
-                bool=False
+                bool_val = False
                 n_fallos += 1
-    return bool, n_fallos
+    result = (bool_val, n_fallos)
+    _condiciones_cache[key] = result
+    return result
 
 def dispersion(t):
     return max(t) - min(t)
@@ -107,12 +74,18 @@ def penal_sobrecarga(t):
    media = sum(t) / len(t)
    res=sum(max(0, load - media) for load in t)
    return res/len(t)
-    
+
+_score_cache={}
 def score(sec, n, m, anterioridad, tiempos):
+    key = (tuple(sec), n, m, str(anterioridad))
+    if key in _score_cache:
+        return _score_cache[key]
     bool, n_fallos = condiciones(sec, n, m, anterioridad)
     t = tiempo_grupo(sec, tiempos)
     media = sum(t) / len(t)
-    return 0.8*max(t) + 0.2*dispersion(t) + (media)*n_fallos*0.1
+    result = 0.8*max(t) + 0.2*dispersion(t) + (media)*n_fallos*0.1
+    _score_cache[key]=result
+    return result
 
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
   poblacion_clasificada = sorted(poblacion, key=lambda sec: score(sec, n, m,anterioridad,tiempos))
@@ -284,8 +257,8 @@ def grafo(matriz, sec, tiempo, score, m,fig_id):
     plt.pause(0.01)
 
 def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiempos,fig_id):
-    plt.ion()
-    p=find_best_p(n,m,500)[0]
+    # plt.ion()
+    p=find_best_p(n,m,1000)[0]
     k = 0
     add = 0
     poblacion = pob_init
@@ -298,18 +271,18 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     mejores_sol = []
     prec = []
     for i in range(no_gen):
-        if poblacion[0] != best or i == no_gen - 1 or i % 100 == 0:
-            print("GENERACION:", i)
-            print("PUNTUACION: "+str(score(poblacion[0], n, m, anterioridad, tiempos )))
-            print("Tiempo maximo:", max(tiempo_grupo(poblacion[0], tiempos)))
+        if  i == no_gen - 1 or i % 10 == 0:
+            # print("GENERACION:", i)
+            # print("PUNTUACION: "+str(score(poblacion[0], n, m, anterioridad, tiempos )))
+            # print("Tiempo maximo:", max(tiempo_grupo(poblacion[0], tiempos)))
             tuplas.append((i, max(tiempo_grupo(poblacion[0], tiempos))))
-            best = poblacion[0]
-            grafo(anterioridad, poblacion[0], tiempos, score(poblacion[0], n, m, anterioridad, tiempos), m,fig_id)     
+            # best = poblacion[0]
+            # grafo(anterioridad, poblacion[0], tiempos, score(poblacion[0], n, m, anterioridad, tiempos), m,fig_id)     
         k += dim_pob
         if len(prec) == delay and prec[0] == score(poblacion[0], n, m, anterioridad, tiempos):     
             add += 2
-            print("Número de intercambios aleatorios de genes en el cruce: ",add+1)
-            print("Plazo de estancamiento para la próxima regeneración de la población: ",delay)
+            # print("Número de intercambios aleatorios de genes en el cruce: ",add+1)
+            # print("Plazo de estancamiento para la próxima regeneración de la población: ",delay)
             mejores_sol.append(poblacion[0])
             poblacion = poblacion_inicial(dim_pob, n, m, anterioridad, tiempos, p)
             delay = i - delay         
@@ -322,13 +295,13 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     for i in range(len(mejores_sol)):
         if not condiciones(mejores_sol[i], n, m, anterioridad):
             mejores_sol[i].pop(i)
-    plt.ioff()
-    plt.figure(fig_id)
-    plt.show()
-    print("------------RESULTADOS------------------")
-    print("Valor del resultado 1:", score(mejores_sol[0], n, m, anterioridad, tiempos))
-    print("Tiempo máximo encontrado:", max(tiempo_grupo(mejores_sol[0], tiempos)))
-    print("Número de soluciones posibles:", num_sol)
-    print("Número de soluciones calculadas:", k)
-    print("Porcentajes del espacio explaroda", k/num_sol*100," %")
-    return mejores_sol[0], (tipo_seleccion.__name__, tuplas)
+    # plt.ioff()
+    # plt.figure(fig_id)
+    # plt.show()
+    # print("------------RESULTADOS------------------")
+    # print("Valor del resultado 1:", score(mejores_sol[0], n, m, anterioridad, tiempos))
+    # print("Tiempo máximo encontrado:", max(tiempo_grupo(mejores_sol[0], tiempos)))
+    # print("Número de soluciones posibles:", num_sol)
+    # print("Número de soluciones calculadas:", k)
+    # print("Porcentajes del espacio explaroda", k/num_sol*100," %")
+    return mejores_sol[0], tipo_seleccion.__name__, tuplas
