@@ -12,7 +12,7 @@ import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 from multiprocessing import Process
 from bestp import *
-
+from collections import OrderedDict
 def read_in2_data(filename):
     try:
         with open(filename, 'r',encoding='latin-1') as f:
@@ -46,15 +46,19 @@ def tiempo_grupo(sec, tiempos):
     max_val = max(sec)
     return [suma.get(i, 0) for i in range(max_val + 1)]
 
-_condiciones_cache={}
-def condiciones(sec, n, m, anterioridad):  
-    # Crear una clave hashable para el cache
+_condiciones_cache=OrderedDict()
+CACHE_LIMIT=5e6
+def condiciones(sec, n, m, anterioridad):
     key = (tuple(sec), n, m, str(anterioridad))
     if key in _condiciones_cache:
+        _condiciones_cache.move_to_end(key)
         return _condiciones_cache[key]
     if sorted(set(sec)) != list(range(m)):
         result = (False, 1e7)
         _condiciones_cache[key] = result
+        # Limita el tamaño
+        if len(_condiciones_cache) > CACHE_LIMIT:
+            _condiciones_cache.popitem(last=False)
         return result
     bool_val = True
     n_fallos = 0
@@ -65,6 +69,8 @@ def condiciones(sec, n, m, anterioridad):
                 n_fallos += 1
     result = (bool_val, n_fallos)
     _condiciones_cache[key] = result
+    if len(_condiciones_cache) > CACHE_LIMIT:
+        _condiciones_cache.popitem(last=False)
     return result
 
 def dispersion(t):
@@ -75,16 +81,19 @@ def penal_sobrecarga(t):
    res=sum(max(0, load - media) for load in t)
    return res/len(t)
 
-_score_cache={}
+_score_cache=OrderedDict()
 def score(sec, n, m, anterioridad, tiempos):
     key = (tuple(sec), n, m, str(anterioridad))
     if key in _score_cache:
+        _score_cache.move_to_end(key)
         return _score_cache[key]
     bool, n_fallos = condiciones(sec, n, m, anterioridad)
     t = tiempo_grupo(sec, tiempos)
     media = sum(t) / len(t)
     result = 0.8*max(t) + 0.2*dispersion(t) + (media)*n_fallos*0.1
-    _score_cache[key]=result
+    _score_cache[key] = result
+    if len(_score_cache) > CACHE_LIMIT:
+        _score_cache.popitem(last=False)
     return result
 
 def clasificacion(poblacion,n,m,anterioridad,tiempos):
@@ -256,23 +265,29 @@ def grafo(matriz, sec, tiempo, score, m,fig_id):
     plt.title("Mejor solución actual",loc="center")
     plt.pause(0.01)
 
+savep=None
+anterioridadS=None
 def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiempos,fig_id):
     # plt.ion()
-    p=find_best_p(n,m,1000)[0]
+    if(savep!=None and anterioridadS==anterioridad ):p=savep
+    else: 
+        p=find_best_p(n,m,1000)[0]
+        anterioridadS=anterioridad
+    savep=p
     k = 0
     add = 0
     poblacion = pob_init
     tuplas = []
-    best = poblacion[0]
-    max_score_prec = 10000
-    num_sol = math.comb(n, m)
+    # best = poblacion[0]
+    # max_score_prec = 10000
+    # num_sol = math.comb(n, m)
     add = 0
     delay = 20
     mejores_sol = []
     prec = []
     for i in range(no_gen):
         if  i == no_gen - 1 or i % 10 == 0:
-            # print("GENERACION:", i)
+            print("GENERACION:", i)
             # print("PUNTUACION: "+str(score(poblacion[0], n, m, anterioridad, tiempos )))
             # print("Tiempo maximo:", max(tiempo_grupo(poblacion[0], tiempos)))
             tuplas.append((i, max(tiempo_grupo(poblacion[0], tiempos))))
@@ -292,9 +307,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
             prec.pop(0)
     mejores_sol.append(poblacion[0])
     mejores_sol = clasificacion(mejores_sol, n, m, anterioridad, tiempos)
-    for i in range(len(mejores_sol)):
-        if not condiciones(mejores_sol[i], n, m, anterioridad):
-            mejores_sol[i].pop(i)
+    mejores_sol = list(filter(lambda sol: condiciones(sol, n, m, anterioridad)[0], mejores_sol))
     # plt.ioff()
     # plt.figure(fig_id)
     # plt.show()

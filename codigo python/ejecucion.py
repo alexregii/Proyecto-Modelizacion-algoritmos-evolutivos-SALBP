@@ -9,7 +9,7 @@ import openpyxl
 def guardar_plot_y_scores(data, nombre_base,nombreGraf,n,m):
 
     nombreGraf = os.path.splitext(os.path.basename(nombreGraf))[0]
-    filename = rf"DATA\{nombreGraf}_M{m}"
+    filename = rf"..\DATA\{nombreGraf}_M{m}"
 
     # Preparar datos para estadística
     all_generaciones = [ [x[0] for x in duplas] for duplas, _ in data ]
@@ -46,7 +46,7 @@ def guardar_plot_y_scores(data, nombre_base,nombreGraf,n,m):
 
 
 
-def buscar_valor_optimo(nombre_grafo, m, archivo=r"SALBP.csv"):
+def buscar_valor_optimo(nombre_grafo, m, archivo=r"..\SALBP.csv"):
     import csv
     nombre_grafo = nombre_grafo.strip().upper()
     with open(archivo, encoding="utf-8-sig") as f:
@@ -89,7 +89,7 @@ def main():
 
 
 
-    graficosYDatos(r"precedenceGraphs\lutz2.in2",9)
+    graficosYDatos(r"..\precedenceGraphs\lutz1.in2",9)
 
 
 
