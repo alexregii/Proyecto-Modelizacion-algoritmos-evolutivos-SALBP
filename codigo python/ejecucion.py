@@ -7,7 +7,7 @@ def main():
     p=find_best_p(n,m,500)[0]
     print(p)
     pob_init=poblacion_inicial(500,n,m,anterioridad,task_times,p)
-    n,dato1=genetic(seleccion,pob_init,10000,500,n,m,anterioridad,task_times,p)
+    n,dato1=genetic(seleccion,pob_init,10000,500,n,m,anterioridad,task_times,1)
     plot_tuples([dato1])
 
 if(__name__=='__main__'):
