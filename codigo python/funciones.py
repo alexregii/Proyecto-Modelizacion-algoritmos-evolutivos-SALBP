@@ -250,6 +250,7 @@ def poblacion_inicial(dim_pob, n, m, anterioridad, tiempos, p):
         for j in range(n):
             sec[j] = rd.randint(0, m - 1)
         poblacion.append(sec.copy())
+
     return poblacion
 
 def grafo(matriz, sec, tiempo, score, m,fig_id):
@@ -294,7 +295,7 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
     max_score_prec = 10000
     num_sol = math.comb(n, m)
     add = 0
-    delay = 20
+    delay = 100
     mejores_sol = []
     prec = []
     for i in range(no_gen):
@@ -307,12 +308,13 @@ def genetic(tipo_seleccion, pob_init, no_gen, dim_pob, n, m, anterioridad, tiemp
             grafo(anterioridad, poblacion[0], tiempos, score(poblacion[0], n, m, anterioridad, tiempos), m,fig_id)     
         k += dim_pob
         if len(prec) == delay and prec[0] == score(poblacion[0], n, m, anterioridad, tiempos):     
-            add += 2
+            add += 1
             print("Número de intercambios aleatorios de genes en el cruce: ",add+1)
             print("Plazo de estancamiento para la próxima regeneración de la población: ",delay)
             mejores_sol.append(poblacion[0])
             poblacion = poblacion_inicial(dim_pob, n, m, anterioridad, tiempos, p)
-            delay = i - delay         
+           # delay = i - delay   
+            prec = []
         poblacion = tipo_seleccion(poblacion, n, m, anterioridad, tiempos,p,add)
         prec.append(score(poblacion[0], n, m, anterioridad, tiempos))
         if len(prec) > delay:
