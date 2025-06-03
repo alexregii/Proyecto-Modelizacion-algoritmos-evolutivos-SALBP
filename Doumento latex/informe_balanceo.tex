@@ -220,12 +220,75 @@ Aplicamos un único tipo de mutación que consiste en mover aleatoriamente una t
 Las mutaciones más pronunciadas, como el intercambio aleatorio de estaciones entre dos tareas, alteran demasiado la estructura de los individuos.
 \chapter{Experimentación}
 \section{Datos usados en la experimentación}
+\label{section:Datos}
 Durante la experimentación, hemos usado tres tipos distintos de datos en los que probar nuestro algoritmo genético: problemas simples generados manualmente, problemas aleatorios y \textit{data-sets}.\\
 Al comienzo de nuestra experimentación, al comenzar desde cero, nuestro algoritmo genético no era capaz de encontrar soluciones en un tiempo razonable, por lo que decidimos generar manualmente problemas pequeños en los que comprobar si estaba funcionando nuestro algoritmo.\\
 De ahí pasamos a incrementar poco a poco el tamaño de los problemas para probar cómo escalaba, hasta un punto en el que era inviable crear problemas manualmente, por lo que recurrimos a la generación aleatoria de problemas. Este tipo de datos fue útil para comprobar que nuestro algoritmo era capaz de encontrar mejores soluciones.\\
 Sin embargo, una vez el algoritmo ya era estable, el no tener soluciones con las que comparar nuestros resultados era insuficiente para sacar conclusiones, por lo que pasamos al tercer y último método: los \textit{data-sets}.\\
 En concreto, usamos los datos de la página \textcolor{blue}{\href{https://assembly-line-balancing.de/salbp/benchmark-data-sets-1993/}{assembly-line-balancing.de}}, de donde obtuvimos el \textit{data-set} de Scholl, que contiene datos acerca de varios grafos SALBP y soluciones analíticas para nuestro caso, SALBP-2. Por lo tanto, el resto de la experimentación y resultados, los cuales fueron los más significativos, se realizaron usando este \textit{data-set} como referencia.
+\newpage
 \section{Metodología}
-\section{Comparación de métodos}
+    En cuanto a la metodología, por lo general ha sido prueba y error. Dividimos algoritmo en distintas partes e íbamos probando cada opción que teníamos para ver cual es la que mejor resultados alcanzaba.
+    Este tipo de pruebas al principio era suficiente fijándose en las soluciones, sin embargo, a medida que se hacia mas complejo el algoritmo decidimos introducir dos partes claves en como se ha desarrollado el algoritmo:
+    \begin{itemize}
+        \item \textbf{Visualización del grafo solución en tiempo real.}, debido a que no eramos capaces de procesar que pasaba a lo largo de las generaciones mirando las soluciones en forma de listas, decidimos implementar una función que dibujara el grafo solución correspondiente con cada nueva mejor solución. Esta visualización nos ayudó a entender mejor el comportamiento del algoritmo a lo largo del tiempo y nos permitió identificar problemas como la endogamia, la poca diversidad en las poblaciones iniciales, el estancamiento en soluciones subóptimas, entre otros.
+        \item \textbf{Gráficas sobre las puntuaciones}, aunque con el dibujo del grafo era suficiente para encontrar problemas graves hubo otros aspectos más sutiles —como la comparación entre distintos métodos de selección, cruce y mutación—, que podian analizarse solo con las soluciones o el grafo. Por esta razón, también utilizamos gráficas que muestran la evolución de la puntuación a lo largo de las generaciones. Estas representaciones nos ayudaron a comprender mejor el comportamiento del algoritmo y elegir esta combinación de selección, recombinación y reproducción, después de comparar varios métodos distintos.
+    \end{itemize}
+    \begin{figure}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{DATA/grafo_lutz2.png}
+        \caption{Grafo de una solución}
+        \label{fig:figura1}
+    \end{minipage}\hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{DATA/lutz1_M9.png}
+        \caption{Grafico sobre las soluciones de lutz1 con numero de estaciones, $m=9$}
+        \label{fig:figura2}
+    \end{minipage}
+\end{figure}
 \chapter{Resultados y conclusión}
+\section{Resultados experimentales}
+
+Para evaluar el rendimiento del algoritmo genético propuesto, se realizaron experimentos sobre distintas instancias del problema SALBP-2. Las pruebas se centraron en analizar la calidad de las soluciones obtenidas, la estabilidad del algoritmo y el impacto de diferentes configuraciones de operadores genéticos (selección, cruce y mutación).
+
+A lo largo de las iteraciones del algoritmo, se observó una mejora progresiva en las soluciones. En la Figura~\ref{fig:evolucion-punt} se presenta la evolución de la puntuación promedio y de la mejor puntuación por generación para el grafo mas complejo del data-set mencionado en~\ref{section:Datos} .
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=\linewidth]{DATA/scholl_M33.png}
+        \caption{Gráfico sobre las soluciones de Scholl con numero de estaciones, $m=33$}
+        \label{fig:evolucion-punt}
+\end{figure}
+Para este grafo en particular, nuestra mejor solución alcanzó un tiempo máximo de $2440$, frente al óptimo conocido de $2111$. Si bien no se llegó al valor óptimo, lo realmente destacable es que esta solución fue encontrada tras explorar únicamente un $1{,}379 \cdot 10^{-36}\%$ del espacio total de soluciones. Esto refleja la eficiencia del algoritmo genético a la hora de identificar soluciones cercanas al óptimo sin recurrir a una exploración exhaustiva del espacio de búsqueda. 
+Otros resultados donde el, $\%$ de error indica el error respecto a la solución exacta:
+\begin{table}[H]
+    \centering
+    
+    \label{tab:otros-resultados}
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        \textbf{Grafo} & $\mathbf{m}$ & \textbf{dim\_Pobl} & \textbf{num\_Gen} & \textbf{\% Error} & \textbf{\% del espacio explorado} \\
+        \hline
+        BUXEY      & 10 & 500 & 500  & 0.00\%  & 1.3 \\
+        LUTZ1      & 8  & 500 & 1000 & 0.00\%  & 2.4 \\
+        LUTZ2      & 15 & 100 & 1000 & 5.90\%  & $1.3 \cdot 10^{-9}$ \\
+        WEE-MAG    & 7  & 500 & 1000 & 0.47\%  & 0.03 \\
+        WARNECKE   & 10 & 500 & 1000 & 3.90\%  & $1.0 \cdot 10^{-5}$ \\
+        TONGE      & 7  & 500 & 1000 & 0.80\%  & $4.7 \cdot 10^{-4}$ \\
+        TONGE      & 10 & 500 & 2000 & 2.30\%  & $2.5 \cdot 10^{-6}$ \\
+        BATHOLD    & 5  & 500 & 500  & 0.27\%  & 0.51 \\
+        KILBRID    & 9  & 500 & 1000 & 1.60\%  & 0.056 \\
+        GUNTHER    & 10 & 500 & 500  & 4.00\%  & 0.14 \\
+        \hline
+    \end{tabular}
+    \caption{Resumen de resultados destacables en diferentes grafos.}
+\end{table}
+
+\section{Conclusión}
+
+El uso de algoritmos genéticos para modelizar el problema SALBP-2 demostró ser eficaz en la generación de soluciones cercanas al óptimo. Gracias a este trabajo hemos podido profundizar en como modelizar usando este tipo de algoritmos, en que centrarse para hacerlos mas eficaces, así como aprovechar toda la información que tenemos acerca de las condiciones del problema para poder modelizarlo de una manera mas sencilla como son el caso de usar el orden topológico y la uniformidad de las poblaciones iniciales.
+
 \end{document}
