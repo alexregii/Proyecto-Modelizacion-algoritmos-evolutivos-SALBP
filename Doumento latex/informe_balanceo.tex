@@ -1,4 +1,3 @@
-
 \documentclass[12pt,a4paper]{report}
 
 \title{Proyecto de modelización - Programación evolutiva\\ \textbf{El problema de balanceo de líneas de montaje}} 
@@ -136,7 +135,7 @@ Aunque el modelo de generación de individuos siguiendo un orden topológico aho
 
 Para introducir una mayor diversidad a lo largo de las generaciones, decidimos generar una parte de la población de forma completamente aleatoria, sin restricciones. Tras varias pruebas, parece que la proporción óptima entre individuos generados por ambos modos es del $50\%$.
 
-Asociado a una función de evaluación que asigna una puntuación no arbitraria a los individuos no válidos, el algoritmo se acerca más a la solución exacta del problema. Para una cantidad de individuos generados inferior al $10\%$ del tamaño del espacio de búsqueda en el caso de los grafos más pequeños, o incluso al $10\,000\%$ para los más grandes, la solución calculada presenta un tiempo de ciclo que, en la mayoría de los casos, se sitúa alrededor de un $5\%$ por encima del valor de la solución óptima.
+Asociado a una función de evaluación que asigna una puntuación no arbitraria a los individuos no válidos, el algoritmo se acerca más a la solución exacta del problema. Para una cantidad de individuos generados inferior al $1\%$ del tamaño del espacio de búsqueda en el caso de los grafos más pequeños, o incluso al $10^{-9}\%$ para los más grandes, la solución calculada presenta un tiempo de ciclo que, en la mayoría de los casos, se sitúa al máximo a un $5\%$ por encima del valor de la solución óptima.
 
 La incorporación de una variación aleatoria de los órdenes topológicos extraídos de $A$ en el modelo no parece ser particularmente eficaz, ya que conduce a resultados que no son mejores.
 
@@ -209,7 +208,7 @@ De hecho, tras un cierto número de generaciones, los individuos que logran repr
 Las restricciones del problema son tan estrictas que un cruce completamente uniforme no resulta efectivo: casi todos los individuos generados por dicho cruce son inválidos.\\
 
 Este cruce resulta muy eficaz si, y sólo si, el número \(k\) de genes a intercambiar está adecuadamente ajustado al grafo considerado. No hemos encontrado una función satisfactoria que relacione \(k\) con las características del grafo, ya sea en términos de dimensiones (\(m\), \(n\)) o de complejidad (medidas de convergencia o divergencia del grafo de precedencias, número total de relaciones de precedencia).\\
-Dado que sabemos que el algoritmo converge en pocas iteraciones (del orden de un centenar) y sin una fase prolongada de estancamiento hacia una solución muy cercana a la óptima cuando el parámetro \(k\) está bien ajustado, hemos optado por el siguiente enfoque. Inicialmente fijamos \(k = 1\), y cuando la solución permanece sin cambios durante más de 20 generaciones, aumentamos \(k\) en 2 y regeneramos completamente la población. Este método implica, por lo tanto, una reinicialización completa del algoritmo. Sin embargo, dado el número relativamente bajo de iteraciones necesarias para evaluar si el valor de \(k\) es adecuado, esta estrategia resulta  viable.
+Dado que sabemos que el algoritmo converge en pocas iteraciones (del orden de un centenar) y sin una fase prolongada de estancamiento hacia una solución muy cercana a la óptima cuando el parámetro \(k\) está bien ajustado, hemos optado por el siguiente enfoque. Inicialmente fijamos \(k = 1\), y cuando la solución permanece sin cambios durante más de 50 generaciones, aumentamos \(k\) en 1 y regeneramos completamente la población. Este método implica, por lo tanto, una reinicialización completa del algoritmo. Sin embargo, dado el número relativamente bajo de iteraciones necesarias para evaluar si el valor de \(k\) es adecuado, esta estrategia resulta  viable.
 
 Por supuesto, hasta alcanzar el número de generaciones definido por el usuario, almacenamos por separado el mejor individuo obtenido en cada reinicialización. Al final, el algoritmo devuelve la mejor de las soluciones entre todas las almacenadas.
 
@@ -263,25 +262,25 @@ A lo largo de las iteraciones del algoritmo, se observó una mejora progresiva e
         \label{fig:evolucion-punt}
 \end{figure}
 Para este grafo en particular, nuestra mejor solución alcanzó un tiempo máximo de $2440$, frente al óptimo conocido de $2111$. Si bien no se llegó al valor óptimo, lo realmente destacable es que esta solución fue encontrada tras explorar únicamente un $1{,}379 \cdot 10^{-36}\%$ del espacio total de soluciones. Esto refleja la eficiencia del algoritmo genético a la hora de identificar soluciones cercanas al óptimo sin recurrir a una exploración exhaustiva del espacio de búsqueda. 
-Otros resultados donde el, $\%$ de error, indica el error respecto a la solución exacta:
+Otros resultados donde el, $\%$ de error indica el error respecto a la solución exacta:
 \begin{table}[H]
     \centering
     
     \label{tab:otros-resultados}
     \begin{tabular}{|c|c|c|c|c|c|c|}
         \hline
-        \textbf{Grafo} & $\mathbf{m}$ &$\mathbf{n}$& \textbf{dim\_Pob} & \textbf{n\_Gen} & \textbf{\% Error} & \textbf{\%espacio explorado} \\
+        \textbf{Grafo} & $\mathbf{m}$ & \textbf{dim\_Pobl} & \textbf{num\_Gen} & \textbf{\% Error} & \textbf{\% del espacio explorado} \\
         \hline
-        BUXEY      & 10 &29& 500 & 500  & 0.00\%  & 1.3\%\\
-        LUTZ1      & 8  &32& 500 & 1000 & 0.00\%  & 2.4\%\\
-        LUTZ2      & 15 &89& 100 & 1000 & 5.90\%  & $1.3 \cdot 10^{-9}$\% \\
-        WEE-MAG    & 7  &75& 500 & 1000 & 0.47\%  & 0.03\% \\
-        WARNECKE   & 10 &58& 500 & 1000 & 3.90\%  & $1.0 \cdot 10^{-5}$\%\\
-        TONGE      & 7  &70& 500 & 1000 & 0.80\%  & $4.7 \cdot 10^{-4}$\% \\
-        TONGE      & 10 &70& 500 & 2000 & 2.30\%  & $2.5 \cdot 10^{-6}$\% \\
-        BATHOLD    & 5  &148& 500 & 500  & 0.27\%  & 0.51\% \\
-        KILBRID    & 9  &45& 500 & 1000 & 1.60\%  & 0.056\% \\
-        GUNTHER    & 10 &35& 500 & 500  & 4.00\%  & 0.14\% \\
+        BUXEY      & 10 & 500 & 500  & 0.00\%  & 1.3 \\
+        LUTZ1      & 8  & 500 & 1000 & 0.00\%  & 2.4 \\
+        LUTZ2      & 15 & 100 & 1000 & 5.90\%  & $1.3 \cdot 10^{-9}$ \\
+        WEE-MAG    & 7  & 500 & 1000 & 0.47\%  & 0.03 \\
+        WARNECKE   & 10 & 500 & 1000 & 3.90\%  & $1.0 \cdot 10^{-5}$ \\
+        TONGE      & 7  & 500 & 1000 & 0.80\%  & $4.7 \cdot 10^{-4}$ \\
+        TONGE      & 10 & 500 & 2000 & 2.30\%  & $2.5 \cdot 10^{-6}$ \\
+        BATHOLD    & 5  & 500 & 500  & 0.27\%  & 0.51 \\
+        KILBRID    & 9  & 500 & 1000 & 1.60\%  & 0.056 \\
+        GUNTHER    & 10 & 500 & 500  & 4.00\%  & 0.14 \\
         \hline
     \end{tabular}
     \caption{Resumen de resultados destacables en diferentes grafos.}
